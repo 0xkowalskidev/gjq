@@ -15,8 +15,11 @@ var gameRegistry = []GameConfig{
 
 	// Source engine (A2S) — roughly ordered by popularity
 	{Slug: "counter-strike-2", Aliases: []string{"cs2"}, AppID: 730, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "counter-strike", Aliases: []string{"cs16", "cs"}, AppID: 10, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "counter-strike-source", Aliases: []string{"css"}, AppID: 240, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "counter-strike-go", Aliases: []string{"csgo"}, AppID: 730, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "rust", Aliases: []string{}, AppID: 252490, DefaultGamePort: 28015, DefaultQueryPort: 28017, Protocol: "source"},
-{Slug: "ark-survival-evolved", Aliases: []string{"ark", "ase"}, AppID: 346110, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "ark-survival-evolved", Aliases: []string{"ark", "ase"}, AppID: 346110, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "valheim", Aliases: []string{}, AppID: 892970, DefaultGamePort: 2456, DefaultQueryPort: 2457, Protocol: "source"},
 	{Slug: "dayz", Aliases: []string{}, AppID: 221100, DefaultGamePort: 2302, DefaultQueryPort: 2303, Protocol: "source"},
 	{Slug: "garrys-mod", Aliases: []string{"gmod"}, AppID: 4000, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
@@ -35,8 +38,18 @@ var gameRegistry = []GameConfig{
 	{Slug: "killing-floor-2", Aliases: []string{"kf2"}, AppID: 232090, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "barotrauma", Aliases: []string{}, AppID: 602960, DefaultGamePort: 27015, DefaultQueryPort: 27016, Protocol: "source"},
 	{Slug: "arma-3", Aliases: []string{"arma3"}, AppID: 107410, DefaultGamePort: 2302, DefaultQueryPort: 2303, Protocol: "source"},
-	{Slug: "counter-strike-source", Aliases: []string{"css"}, AppID: 240, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
-	{Slug: "counter-strike-go", Aliases: []string{"csgo"}, AppID: 730, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "arma-2", Aliases: []string{"arma2"}, AppID: 33900, DefaultGamePort: 2302, DefaultQueryPort: 2303, Protocol: "source"},
+	{Slug: "squad-44", Aliases: []string{"s44"}, AppID: 736220, DefaultGamePort: 7787, DefaultQueryPort: 27165, Protocol: "source"},
+	{Slug: "beyond-the-wire", Aliases: []string{"btw"}, AppID: 1058650, DefaultGamePort: 7787, DefaultQueryPort: 27165, Protocol: "source"},
+	{Slug: "rising-storm-2", Aliases: []string{"rs2"}, AppID: 418460, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "the-front", Aliases: []string{}, AppID: 2285150, DefaultGamePort: 5001, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "soulmask", Aliases: []string{}, AppID: 2646460, DefaultGamePort: 8777, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "myth-of-empires", Aliases: []string{"moe"}, AppID: 1371580, DefaultGamePort: 11888, DefaultQueryPort: 12888, Protocol: "source"},
+	{Slug: "atlas", Aliases: []string{}, AppID: 834910, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "dark-and-light", Aliases: []string{"dnl"}, AppID: 529180, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
+	{Slug: "pixark", Aliases: []string{}, AppID: 593600, DefaultGamePort: 27015, DefaultQueryPort: 27016, Protocol: "source"},
+	{Slug: "battalion-1944", Aliases: []string{"battalion"}, AppID: 489940, DefaultGamePort: 7777, DefaultQueryPort: 7780, Protocol: "source"},
+	{Slug: "starbound", Aliases: []string{}, AppID: 211820, DefaultGamePort: 21025, DefaultQueryPort: 21025, Protocol: "source"},
 }
 
 // SupportedGames returns all registered game configs.
