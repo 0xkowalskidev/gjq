@@ -194,31 +194,18 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 		defer cancel()
 	}
 
+	ports := collectPorts(opts.PortRanges)
+	protocols := protocol.All()
+
 	type probe struct {
-		queryPort uint16
-		gamePort  uint16
-		protocol  string
+		port     uint16
+		protocol string
 	}
 
 	var probes []probe
-
-	if len(opts.PortRanges) > 0 {
-		for _, pr := range opts.PortRanges {
-			for port := pr.Start; port <= pr.End; port++ {
-				for name := range protocol.All() {
-					probes = append(probes, probe{queryPort: port, gamePort: port, protocol: name})
-				}
-			}
-		}
-	} else {
-		seen := make(map[string]bool)
-		for _, g := range SupportedGames() {
-			key := fmt.Sprintf("%s:%d", g.Protocol, g.DefaultQueryPort)
-			if seen[key] {
-				continue
-			}
-			seen[key] = true
-			probes = append(probes, probe{queryPort: g.DefaultQueryPort, gamePort: g.DefaultGamePort, protocol: g.Protocol})
+	for _, port := range ports {
+		for name := range protocols {
+			probes = append(probes, probe{port: port, protocol: name})
 		}
 	}
 
@@ -229,19 +216,17 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 		go func(p probe) {
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			info, err := queryWithProtocol(ctx, address, p.queryPort, p.protocol)
+			info, err := queryWithProtocol(ctx, address, p.port, p.protocol)
 			if err != nil {
-				slog.Debug("scan miss", "port", p.queryPort, "protocol", p.protocol, "error", err)
+				slog.Debug("scan miss", "port", p.port, "protocol", p.protocol, "error", err)
 				resultCh <- nil
 				return
 			}
 			if info.GamePort != 0 {
 				info.Port = info.GamePort
 				info.GamePort = 0
-			} else {
-				info.Port = p.gamePort
 			}
-			slog.Debug("scan hit", "port", p.queryPort, "protocol", p.protocol)
+			slog.Debug("scan hit", "port", p.port, "protocol", p.protocol)
 			resultCh <- info
 		}(p)
 	}
@@ -254,4 +239,35 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 	}
 
 	return servers, nil
+}
+
+// collectPorts returns a deduplicated list of ports to probe.
+// If port ranges are provided, uses those. Otherwise, collects all
+// unique default ports from the game registry.
+func collectPorts(portRanges []PortRange) []uint16 {
+	if len(portRanges) > 0 {
+		seen := make(map[uint16]bool)
+		var ports []uint16
+		for _, pr := range portRanges {
+			for port := pr.Start; port <= pr.End; port++ {
+				if !seen[port] {
+					seen[port] = true
+					ports = append(ports, port)
+				}
+			}
+		}
+		return ports
+	}
+
+	seen := make(map[uint16]bool)
+	var ports []uint16
+	for _, g := range SupportedGames() {
+		for _, port := range []uint16{g.DefaultQueryPort, g.DefaultGamePort} {
+			if !seen[port] {
+				seen[port] = true
+				ports = append(ports, port)
+			}
+		}
+	}
+	return ports
 }
