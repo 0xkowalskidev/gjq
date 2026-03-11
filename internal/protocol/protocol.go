@@ -55,7 +55,8 @@ type PlayerInfo struct {
 }
 
 type QueryOpts struct {
-	Players bool
+	Players    bool
+	ResolvedIP string // pre-resolved IP to skip redundant DNS lookups
 }
 
 type Querier interface {

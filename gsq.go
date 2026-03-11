@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"sync"
 
 	"github.com/0xkowalskidev/gsq/internal/protocol"
@@ -23,7 +24,12 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		defer cancel()
 	}
 
-	queryOpts := protocol.QueryOpts{Players: opts.Players}
+	resolvedIP, err := resolveHost(ctx, address)
+	if err != nil {
+		return nil, fmt.Errorf("resolve %s: %w", address, err)
+	}
+
+	queryOpts := protocol.QueryOpts{Players: opts.Players, ResolvedIP: resolvedIP}
 
 	if opts.Game != "" {
 		return queryByGame(ctx, address, port, opts.Game, queryOpts)
@@ -158,7 +164,12 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 		defer cancel()
 	}
 
-	queryOpts := protocol.QueryOpts{Players: opts.Players}
+	resolvedIP, err := resolveHost(ctx, address)
+	if err != nil {
+		return nil, fmt.Errorf("resolve %s: %w", address, err)
+	}
+
+	queryOpts := protocol.QueryOpts{Players: opts.Players, ResolvedIP: resolvedIP}
 
 	ports := collectPorts(opts.PortRanges)
 	protocols := protocol.All()
@@ -216,6 +227,20 @@ func collectPorts(portRanges []PortRange) []uint16 {
 	}
 
 	return dedupPorts(ports...)
+}
+
+// resolveHost resolves a hostname to an IP once so concurrent queries don't repeat DNS.
+// If the address is already an IP, it returns it as-is.
+func resolveHost(ctx context.Context, address string) (string, error) {
+	if net.ParseIP(address) != nil {
+		return address, nil
+	}
+	ips, err := net.DefaultResolver.LookupHost(ctx, address)
+	if err != nil {
+		return "", err
+	}
+	slog.Debug("resolved host", "host", address, "ip", ips[0])
+	return ips[0], nil
 }
 
 func dedupPorts(ports ...uint16) []uint16 {

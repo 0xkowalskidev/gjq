@@ -33,7 +33,11 @@ func init() {
 }
 
 func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
-	addr := net.JoinHostPort(address, fmt.Sprintf("%d", port))
+	dialHost := address
+	if opts.ResolvedIP != "" {
+		dialHost = opts.ResolvedIP
+	}
+	addr := net.JoinHostPort(dialHost, fmt.Sprintf("%d", port))
 
 	deadline, ok := ctx.Deadline()
 	if !ok {
