@@ -37,9 +37,20 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		return queryByGame(ctx, address, port, opts.Game, queryOpts)
 	}
 
+	candidatePorts := []uint16{port}
+	for _, g := range SupportedGames() {
+		if g.DefaultQueryPort > g.DefaultGamePort {
+			offset := g.DefaultQueryPort - g.DefaultGamePort
+			candidatePorts = append(candidatePorts, port+offset)
+		}
+	}
+	candidatePorts = dedupPorts(candidatePorts...)
+
 	var attempts []attempt
-	for name := range protocol.All() {
-		attempts = append(attempts, attempt{port: port, protocol: name})
+	for _, p := range candidatePorts {
+		for name := range protocol.All() {
+			attempts = append(attempts, attempt{port: p, protocol: name})
+		}
 	}
 
 	info, err := raceQuery(ctx, address, attempts, queryOpts)
@@ -75,9 +86,17 @@ func queryByGame(ctx context.Context, address string, givenPort uint16, game str
 		return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, game, err)
 	}
 
-	// User gave a game port; query may have succeeded on a different (query) port
-	info.QueryPort = info.GamePort
-	info.GamePort = givenPort
+	// info.GamePort is the port we actually queried on
+	queriedPort := info.GamePort
+	info.QueryPort = queriedPort
+	if gc.DefaultQueryPort > gc.DefaultGamePort {
+		offset := gc.DefaultQueryPort - gc.DefaultGamePort
+		if queriedPort >= offset {
+			info.GamePort = queriedPort - offset
+		}
+	} else {
+		info.GamePort = givenPort
+	}
 	info.Game = gc.Name
 	sanitizeInfo(info)
 
