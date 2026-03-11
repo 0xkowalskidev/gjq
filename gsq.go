@@ -161,44 +161,58 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 	ports := collectPorts(opts.PortRanges)
 	protocols := protocol.All()
 
-	var probes []attempt
-	for _, port := range ports {
-		for name := range protocols {
-			probes = append(probes, attempt{port: port, protocol: name})
-		}
+	protoNames := make([]string, 0, len(protocols))
+	for name := range protocols {
+		protoNames = append(protoNames, name)
 	}
 
-	resultCh := make(chan *ServerInfo, len(probes))
-	sem := make(chan struct{}, 20)
+	workers := 256
+	probeCh := make(chan attempt, workers)
+	resultCh := make(chan *ServerInfo, workers)
 
-	for _, p := range probes {
-		go func(p attempt) {
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			probeCtx := ctx
-			if opts.Timeout > 0 {
+	var wg sync.WaitGroup
+	for range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for p := range probeCh {
+				probeCtx := ctx
 				var cancel context.CancelFunc
-				probeCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
-				defer cancel()
-			}
+				if opts.Timeout > 0 {
+					probeCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
+				}
 
-			info, err := queryWithProtocol(probeCtx, address, p.port, p.protocol, queryOpts)
-			if err != nil {
-				resultCh <- nil
-				return
+				info, err := queryWithProtocol(probeCtx, address, p.port, p.protocol, queryOpts)
+				if cancel != nil {
+					cancel()
+				}
+				if err != nil {
+					continue
+				}
+				inferGamePort(info)
+				resolveGameName(info)
+				resultCh <- info
 			}
-			inferGamePort(info)
-			resolveGameName(info)
-			resultCh <- info
-		}(p)
+		}()
 	}
+
+	go func() {
+		for _, port := range ports {
+			for _, name := range protoNames {
+				probeCh <- attempt{port: port, protocol: name}
+			}
+		}
+		close(probeCh)
+	}()
+
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
 
 	var servers []*ServerInfo
-	for range probes {
-		if info := <-resultCh; info != nil {
-			servers = append(servers, info)
-		}
+	for info := range resultCh {
+		servers = append(servers, info)
 	}
 
 	return servers, nil
@@ -209,8 +223,8 @@ func collectPorts(portRanges []PortRange) []uint16 {
 
 	if len(portRanges) > 0 {
 		for _, pr := range portRanges {
-			for port := pr.Start; port <= pr.End; port++ {
-				ports = append(ports, port)
+			for port := uint32(pr.Start); port <= uint32(pr.End); port++ {
+				ports = append(ports, uint16(port))
 			}
 		}
 	} else {
