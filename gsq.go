@@ -66,29 +66,12 @@ func queryByGame(ctx context.Context, address string, givenPort uint16, game str
 		return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, game, err)
 	}
 
-	// info.Port is the query port that succeeded (set by protocol implementation)
-	info.Port = resolveGamePort(info, info.Port, givenPort, gc)
-	info.GamePort = 0
+	if info.Port != givenPort {
+		info.QueryPort = info.Port
+	}
+	info.Port = givenPort
+
 	return info, nil
-}
-
-func resolveGamePort(info *ServerInfo, matchedQueryPort, givenPort uint16, gc *GameConfig) uint16 {
-	if info.GamePort != 0 {
-		return info.GamePort
-	}
-
-	offset := gc.DefaultQueryPort - gc.DefaultGamePort
-
-	switch matchedQueryPort {
-	case givenPort + offset:
-		return givenPort
-	case givenPort:
-		return givenPort - offset
-	case gc.DefaultQueryPort:
-		return gc.DefaultGamePort
-	default:
-		return givenPort
-	}
 }
 
 type attempt struct {
@@ -158,12 +141,6 @@ func queryWithProtocol(ctx context.Context, address string, port uint16, protoNa
 // Discover scans a host for game servers by probing known default ports
 // or a custom port range with all registered protocols.
 func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*ServerInfo, error) {
-	if opts.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
-		defer cancel()
-	}
-
 	resolvedIP, err := resolveHost(ctx, address)
 	if err != nil {
 		return nil, fmt.Errorf("resolve %s: %w", address, err)
@@ -188,14 +165,18 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 		go func(p attempt) {
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			info, err := queryWithProtocol(ctx, address, p.port, p.protocol, queryOpts)
+
+			probeCtx := ctx
+			if opts.Timeout > 0 {
+				var cancel context.CancelFunc
+				probeCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
+				defer cancel()
+			}
+
+			info, err := queryWithProtocol(probeCtx, address, p.port, p.protocol, queryOpts)
 			if err != nil {
 				resultCh <- nil
 				return
-			}
-			if info.GamePort != 0 {
-				info.Port = info.GamePort
-				info.GamePort = 0
 			}
 			resultCh <- info
 		}(p)
