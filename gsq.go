@@ -30,21 +30,72 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 	return detectProtocol(ctx, address, port)
 }
 
-func queryByGame(ctx context.Context, address string, gamePort uint16, game string) (*ServerInfo, error) {
+func queryByGame(ctx context.Context, address string, givenPort uint16, game string) (*ServerInfo, error) {
 	gc := LookupGame(game)
 	if gc == nil {
 		return nil, fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", game)
 	}
 
-	queryPort := gamePort + (gc.DefaultQueryPort - gc.DefaultGamePort)
+	offset := gc.DefaultQueryPort - gc.DefaultGamePort
 
-	info, err := queryWithProtocol(ctx, address, queryPort, gc.Protocol)
-	if err != nil {
-		return nil, err
+	seen := make(map[uint16]bool)
+	var queryPorts []uint16
+
+	addCandidate := func(qp uint16) {
+		if !seen[qp] {
+			seen[qp] = true
+			queryPorts = append(queryPorts, qp)
+		}
 	}
 
-	info.Port = gamePort
-	return info, nil
+	addCandidate(givenPort)                // Maybe the user provided the query port directly
+	addCandidate(givenPort + offset)       // User provided the game port
+	addCandidate(gc.DefaultQueryPort)      // Custom game port but default query port
+
+	type result struct {
+		info *ServerInfo
+		err  error
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	resultCh := make(chan result, len(queryPorts))
+	var wg sync.WaitGroup
+
+	for _, qp := range queryPorts {
+		wg.Add(1)
+		go func(qp uint16) {
+			defer wg.Done()
+			slog.Debug("trying query port candidate", "queryPort", qp, "game", game)
+			info, err := queryWithProtocol(ctx, address, qp, gc.Protocol)
+			if err != nil {
+				slog.Debug("candidate failed", "queryPort", qp, "error", err)
+				resultCh <- result{err: err}
+				return
+			}
+			slog.Debug("candidate succeeded", "queryPort", qp)
+			resultCh <- result{info: info}
+		}(qp)
+	}
+
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
+
+	var lastErr error
+	for r := range resultCh {
+		if r.err != nil {
+			lastErr = r.err
+			continue
+		}
+		cancel()
+		r.info.Port = givenPort
+		return r.info, nil
+	}
+
+	return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, game, lastErr)
 }
 
 func queryWithProtocol(ctx context.Context, address string, port uint16, protoName string) (*ServerInfo, error) {
