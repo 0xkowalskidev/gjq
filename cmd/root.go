@@ -17,7 +17,7 @@ var (
 	flagGame    string
 	flagJSON    bool
 	flagTimeout time.Duration
-	flagVerbose bool
+	flagDebug bool
 )
 
 func NewRootCmd() *cobra.Command {
@@ -28,7 +28,7 @@ func NewRootCmd() *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			level := slog.LevelInfo
-			if flagVerbose || os.Getenv("DEBUG") == "1" {
+			if flagDebug || os.Getenv("DEBUG") == "1" {
 				level = slog.LevelDebug
 			}
 			slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})))
@@ -75,7 +75,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&flagGame, "game", "", "game slug to skip auto-detection (e.g. cs2, minecraft)")
 	rootCmd.Flags().BoolVar(&flagJSON, "json", false, "output as JSON")
 	rootCmd.Flags().DurationVar(&flagTimeout, "timeout", 5*time.Second, "query timeout")
-	rootCmd.PersistentFlags().BoolVar(&flagVerbose, "verbose", false, "enable debug logging")
+	rootCmd.PersistentFlags().BoolVar(&flagDebug, "debug", false, "enable debug logging")
 
 	rootCmd.SilenceUsage = true
 	rootCmd.SilenceErrors = true
