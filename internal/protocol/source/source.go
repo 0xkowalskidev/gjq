@@ -32,7 +32,7 @@ func init() {
 	protocol.Register("source", &SourceQuerier{})
 }
 
-func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16) (*protocol.ServerInfo, error) {
+func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
 	addr := net.JoinHostPort(address, fmt.Sprintf("%d", port))
 
 	deadline, ok := ctx.Deadline()
@@ -57,18 +57,20 @@ func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16) 
 	info.Address = address
 	info.Port = port
 
-	// Short deadline for player query — some servers don't respond to it
-	playerDeadline := time.Now().Add(200 * time.Millisecond)
-	if playerDeadline.After(deadline) {
-		playerDeadline = deadline
-	}
-	conn.SetDeadline(playerDeadline)
+	if opts.Players {
+		// Short deadline for player query — some servers don't respond to it
+		playerDeadline := time.Now().Add(200 * time.Millisecond)
+		if playerDeadline.After(deadline) {
+			playerDeadline = deadline
+		}
+		conn.SetDeadline(playerDeadline)
 
-	players, err := queryPlayers(conn)
-	if err != nil {
-		return info, nil
+		players, err := queryPlayers(conn)
+		if err != nil {
+			return info, nil
+		}
+		info.PlayerList = players
 	}
-	info.PlayerList = players
 
 	return info, nil
 }

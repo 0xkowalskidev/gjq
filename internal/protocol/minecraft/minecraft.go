@@ -36,7 +36,7 @@ type statusResponse struct {
 	} `json:"version"`
 }
 
-func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint16) (*protocol.ServerInfo, error) {
+func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
 	addr := net.JoinHostPort(address, fmt.Sprintf("%d", port))
 
 	deadline, ok := ctx.Deadline()
@@ -80,10 +80,12 @@ func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint1
 		Port:       port,
 	}
 
-	for _, p := range status.Players.Sample {
-		info.PlayerList = append(info.PlayerList, protocol.PlayerInfo{
-			Name: p.Name,
-		})
+	if opts.Players {
+		for _, p := range status.Players.Sample {
+			info.PlayerList = append(info.PlayerList, protocol.PlayerInfo{
+				Name: p.Name,
+			})
+		}
 	}
 
 	return info, nil

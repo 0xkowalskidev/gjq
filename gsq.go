@@ -23,8 +23,10 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		defer cancel()
 	}
 
+	queryOpts := protocol.QueryOpts{Players: opts.Players}
+
 	if opts.Game != "" {
-		return queryByGame(ctx, address, port, opts.Game)
+		return queryByGame(ctx, address, port, opts.Game, queryOpts)
 	}
 
 	var attempts []attempt
@@ -32,14 +34,14 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		attempts = append(attempts, attempt{port: port, protocol: name})
 	}
 
-	info, err := raceQuery(ctx, address, attempts)
+	info, err := raceQuery(ctx, address, attempts, queryOpts)
 	if err != nil {
 		return nil, fmt.Errorf("no protocol matched for %s:%d: %w", address, port, err)
 	}
 	return info, nil
 }
 
-func queryByGame(ctx context.Context, address string, givenPort uint16, game string) (*ServerInfo, error) {
+func queryByGame(ctx context.Context, address string, givenPort uint16, game string, queryOpts protocol.QueryOpts) (*ServerInfo, error) {
 	gc := LookupGame(game)
 	if gc == nil {
 		return nil, fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", game)
@@ -53,7 +55,7 @@ func queryByGame(ctx context.Context, address string, givenPort uint16, game str
 		attempts = append(attempts, attempt{port: p, protocol: gc.Protocol})
 	}
 
-	info, err := raceQuery(ctx, address, attempts)
+	info, err := raceQuery(ctx, address, attempts, queryOpts)
 	if err != nil {
 		return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, game, err)
 	}
@@ -89,7 +91,7 @@ type attempt struct {
 }
 
 // raceQuery tries all attempts concurrently, returning the first successful result.
-func raceQuery(ctx context.Context, address string, attempts []attempt) (*ServerInfo, error) {
+func raceQuery(ctx context.Context, address string, attempts []attempt, queryOpts protocol.QueryOpts) (*ServerInfo, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -105,7 +107,7 @@ func raceQuery(ctx context.Context, address string, attempts []attempt) (*Server
 		wg.Add(1)
 		go func(a attempt) {
 			defer wg.Done()
-			info, err := queryWithProtocol(ctx, address, a.port, a.protocol)
+			info, err := queryWithProtocol(ctx, address, a.port, a.protocol, queryOpts)
 			if err != nil {
 				resultCh <- result{err: err}
 				return
@@ -131,14 +133,14 @@ func raceQuery(ctx context.Context, address string, attempts []attempt) (*Server
 	return nil, lastErr
 }
 
-func queryWithProtocol(ctx context.Context, address string, port uint16, protoName string) (*ServerInfo, error) {
+func queryWithProtocol(ctx context.Context, address string, port uint16, protoName string, queryOpts protocol.QueryOpts) (*ServerInfo, error) {
 	q, err := protocol.Get(protoName)
 	if err != nil {
 		return nil, fmt.Errorf("get protocol %q: %w", protoName, err)
 	}
 
 	slog.Debug("querying server", "protocol", protoName, "address", address, "port", port)
-	info, err := q.Query(ctx, address, port)
+	info, err := q.Query(ctx, address, port, queryOpts)
 	if err != nil {
 		slog.Debug("query failed", "protocol", protoName, "address", address, "port", port, "error", err)
 		return nil, err
@@ -155,6 +157,8 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 		ctx, cancel = context.WithTimeout(ctx, opts.Timeout)
 		defer cancel()
 	}
+
+	queryOpts := protocol.QueryOpts{Players: opts.Players}
 
 	ports := collectPorts(opts.PortRanges)
 	protocols := protocol.All()
@@ -173,7 +177,7 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 		go func(p attempt) {
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			info, err := queryWithProtocol(ctx, address, p.port, p.protocol)
+			info, err := queryWithProtocol(ctx, address, p.port, p.protocol, queryOpts)
 			if err != nil {
 				resultCh <- nil
 				return

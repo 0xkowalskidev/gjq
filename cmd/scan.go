@@ -12,6 +12,7 @@ import (
 var (
 	flagPorts       string
 	flagScanTimeout time.Duration
+	flagScanPlayers bool
 )
 
 func NewScanCmd() *cobra.Command {
@@ -26,6 +27,7 @@ func NewScanCmd() *cobra.Command {
 
 			opts := gsq.DiscoverOptions{
 				Timeout: flagScanTimeout,
+				Players: flagScanPlayers,
 			}
 
 			if flagPorts != "" {
@@ -52,6 +54,7 @@ func NewScanCmd() *cobra.Command {
 
 	cmd.Flags().StringVar(&flagPorts, "ports", "", "port range to scan (e.g. 25000-26000)")
 	cmd.Flags().DurationVar(&flagScanTimeout, "timeout", 1*time.Second, "per-probe timeout")
+	cmd.Flags().BoolVar(&flagScanPlayers, "players", false, "fetch player list")
 
 	return cmd
 }
