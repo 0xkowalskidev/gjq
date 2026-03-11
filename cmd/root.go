@@ -70,6 +70,7 @@ func NewRootCmd() *cobra.Command {
 				return err
 			}
 
+			info.Address = args[0]
 			return printServerInfo(info, flagJSON)
 		},
 	}

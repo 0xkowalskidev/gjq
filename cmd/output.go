@@ -38,13 +38,9 @@ func printJSON(v any) error {
 
 func printTable(info *gsq.ServerInfo) {
 	fmt.Printf("%-12s %s\n", "Name:", info.Name)
-	fmt.Printf("%-12s %s:%d\n", "Address:", info.Address, info.Port)
-	if info.QueryPort != 0 {
-		fmt.Printf("%-12s %d\n", "Query Port:", info.QueryPort)
-	}
-	if info.GamePort != 0 {
-		fmt.Printf("%-12s %d\n", "Game Port:", info.GamePort)
-	}
+	fmt.Printf("%-12s %s\n", "Address:", info.Address)
+	fmt.Printf("%-12s %d\n", "Game Port:", info.GamePort)
+	fmt.Printf("%-12s %d\n", "Query Port:", info.QueryPort)
 	fmt.Printf("%-12s %s\n", "Game:", info.Game)
 	fmt.Printf("%-12s %s\n", "Map:", info.Map)
 	fmt.Printf("%-12s %d / %d\n", "Players:", info.Players, info.MaxPlayers)

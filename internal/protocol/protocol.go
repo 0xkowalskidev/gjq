@@ -41,11 +41,11 @@ type ServerInfo struct {
 	Visibility  string       `json:"visibility,omitempty"`
 	VAC         bool         `json:"vac,omitempty"`
 	Version     string       `json:"version,omitempty"`
+	AppID       uint32       `json:"appId,omitempty"`
 	Ping        Duration     `json:"ping"`
-	Address     string       `json:"address"`
-	Port        uint16       `json:"port"`
-	QueryPort   uint16       `json:"queryPort,omitempty"`
-	GamePort    uint16       `json:"gamePort,omitempty"`
+	Address   string `json:"address"`
+	GamePort  uint16 `json:"gamePort"`
+	QueryPort uint16 `json:"queryPort"`
 	PlayerList  []PlayerInfo `json:"playerList,omitempty"`
 }
 

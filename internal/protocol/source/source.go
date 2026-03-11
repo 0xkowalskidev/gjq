@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"net"
 	"time"
 
@@ -59,7 +60,8 @@ func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16, 
 
 	info.Ping = protocol.Duration{Duration: ping}
 	info.Address = address
-	info.Port = port
+	info.GamePort = port
+	info.QueryPort = port
 
 	if opts.Players {
 		// Short deadline for player query — some servers don't respond to it
@@ -184,13 +186,32 @@ func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
 		Version:     version,
 	}
 
+	// Parse Extra Data Flag (EDF) fields in spec order
 	if edf, err := r.ReadByte(); err == nil {
 		if edf&0x80 != 0 {
-			var gamePort uint16
-			if err := binary.Read(r, binary.LittleEndian, &gamePort); err == nil {
-				info.GamePort = gamePort
+			r.Seek(2, io.SeekCurrent) // skip EDF game port — unreliable in containerized setups
+		}
+		if edf&0x10 != 0 {
+			r.Seek(8, io.SeekCurrent) // skip SteamID (uint64)
+		}
+		if edf&0x40 != 0 {
+			r.Seek(2, io.SeekCurrent) // skip spectator port (uint16)
+			readString(r)             // skip spectator name
+		}
+		if edf&0x20 != 0 {
+			readString(r) // skip keywords
+		}
+		if edf&0x01 != 0 {
+			var gameID uint64
+			if err := binary.Read(r, binary.LittleEndian, &gameID); err == nil {
+				info.AppID = uint32(gameID & 0xFFFFFF)
 			}
 		}
+	}
+
+	// Fall back to truncated uint16 AppID if EDF GameID wasn't present
+	if info.AppID == 0 {
+		info.AppID = uint32(fields.AppID)
 	}
 
 	return info, nil

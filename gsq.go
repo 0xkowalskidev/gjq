@@ -44,6 +44,7 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 	if err != nil {
 		return nil, fmt.Errorf("no protocol matched for %s:%d: %w", address, port, err)
 	}
+	inferGamePort(info)
 	return info, nil
 }
 
@@ -66,10 +67,9 @@ func queryByGame(ctx context.Context, address string, givenPort uint16, game str
 		return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, game, err)
 	}
 
-	if info.Port != givenPort {
-		info.QueryPort = info.Port
-	}
-	info.Port = givenPort
+	// User gave a game port; query may have succeeded on a different (query) port
+	info.QueryPort = info.GamePort
+	info.GamePort = givenPort
 
 	return info, nil
 }
@@ -178,6 +178,7 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 				resultCh <- nil
 				return
 			}
+			inferGamePort(info)
 			resultCh <- info
 		}(p)
 	}
@@ -208,6 +209,25 @@ func collectPorts(portRanges []PortRange) []uint16 {
 	}
 
 	return dedupPorts(ports...)
+}
+
+// inferGamePort identifies the game via AppID and infers the game port from the
+// known query-to-game port offset. Used by auto-detect Query and Discover.
+func inferGamePort(info *ServerInfo) {
+	queriedPort := info.GamePort
+
+	var gc *GameConfig
+	if info.AppID != 0 {
+		gc = LookupGameByAppID(info.AppID)
+	} else if info.Protocol == "minecraft" {
+		gc = LookupGame("minecraft")
+	}
+
+	if gc != nil && gc.DefaultQueryPort != gc.DefaultGamePort {
+		offset := gc.DefaultQueryPort - gc.DefaultGamePort
+		info.GamePort = queriedPort - offset
+		info.QueryPort = queriedPort
+	}
 }
 
 // resolveHost resolves a hostname to an IP once so concurrent queries don't repeat DNS.
