@@ -43,9 +43,9 @@ type ServerInfo struct {
 	Version     string       `json:"version,omitempty"`
 	AppID       uint32       `json:"appId,omitempty"`
 	Ping        Duration     `json:"ping"`
-	Address   string `json:"address"`
-	GamePort  uint16 `json:"gamePort"`
-	QueryPort uint16 `json:"queryPort"`
+	Address     string       `json:"address"`
+	GamePort    uint16       `json:"gamePort"`
+	QueryPort   uint16       `json:"queryPort"`
 	PlayerList  []PlayerInfo `json:"playerList,omitempty"`
 }
 
@@ -79,5 +79,9 @@ func Get(name string) (Querier, error) {
 }
 
 func All() map[string]Querier {
-	return registry
+	cp := make(map[string]Querier, len(registry))
+	for k, v := range registry {
+		cp[k] = v
+	}
+	return cp
 }

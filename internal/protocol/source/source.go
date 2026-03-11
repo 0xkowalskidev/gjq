@@ -105,7 +105,9 @@ func queryInfo(conn net.Conn) (*protocol.ServerInfo, time.Duration, error) {
 			return nil, 0, fmt.Errorf("challenge response too short: %d bytes", n)
 		}
 		challenge := data[5:9]
-		retryPayload := append(a2sInfoPayload, challenge...)
+		retryPayload := make([]byte, len(a2sInfoPayload), len(a2sInfoPayload)+4)
+		copy(retryPayload, a2sInfoPayload)
+		retryPayload = append(retryPayload, challenge...)
 
 		start = time.Now()
 		if _, err := conn.Write(retryPayload); err != nil {
@@ -131,8 +133,9 @@ func queryInfo(conn net.Conn) (*protocol.ServerInfo, time.Duration, error) {
 func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
 	r := bytes.NewReader(data)
 
-	// Skip protocol version (1 byte)
-	r.ReadByte()
+	if _, err := r.ReadByte(); err != nil {
+		return nil, fmt.Errorf("read protocol version: %w", err)
+	}
 
 	name, err := readString(r)
 	if err != nil {

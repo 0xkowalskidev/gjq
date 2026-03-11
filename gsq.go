@@ -57,8 +57,13 @@ func queryByGame(ctx context.Context, address string, givenPort uint16, game str
 		return nil, fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", game)
 	}
 
-	offset := gc.DefaultQueryPort - gc.DefaultGamePort
-	candidatePorts := dedupPorts(givenPort, givenPort+offset, gc.DefaultQueryPort)
+	var candidatePorts []uint16
+	if gc.DefaultQueryPort >= gc.DefaultGamePort {
+		offset := gc.DefaultQueryPort - gc.DefaultGamePort
+		candidatePorts = dedupPorts(givenPort, givenPort+offset, gc.DefaultQueryPort)
+	} else {
+		candidatePorts = dedupPorts(givenPort, gc.DefaultQueryPort)
+	}
 
 	var attempts []attempt
 	for _, p := range candidatePorts {
@@ -229,10 +234,12 @@ func inferGamePort(info *ServerInfo) {
 		gc = LookupGame("minecraft")
 	}
 
-	if gc != nil && gc.DefaultQueryPort != gc.DefaultGamePort {
+	if gc != nil && gc.DefaultQueryPort > gc.DefaultGamePort {
 		offset := gc.DefaultQueryPort - gc.DefaultGamePort
-		info.GamePort = queriedPort - offset
-		info.QueryPort = queriedPort
+		if queriedPort >= offset {
+			info.GamePort = queriedPort - offset
+			info.QueryPort = queriedPort
+		}
 	}
 }
 
