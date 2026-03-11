@@ -13,11 +13,13 @@ type PlayerInfo = protocol.PlayerInfo
 type QueryOptions struct {
 	Game    string
 	Timeout time.Duration
+	Players bool
 }
 
 type DiscoverOptions struct {
 	Timeout    time.Duration
 	PortRanges []PortRange
+	Players    bool
 }
 
 type PortRange struct {

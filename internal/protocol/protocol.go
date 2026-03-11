@@ -54,8 +54,12 @@ type PlayerInfo struct {
 	Duration Duration `json:"duration"`
 }
 
+type QueryOpts struct {
+	Players bool
+}
+
 type Querier interface {
-	Query(ctx context.Context, address string, port uint16) (*ServerInfo, error)
+	Query(ctx context.Context, address string, port uint16, opts QueryOpts) (*ServerInfo, error)
 }
 
 var registry = make(map[string]Querier)

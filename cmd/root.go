@@ -17,7 +17,8 @@ var (
 	flagGame    string
 	flagJSON    bool
 	flagTimeout time.Duration
-	flagDebug bool
+	flagDebug   bool
+	flagPlayers bool
 )
 
 func NewRootCmd() *cobra.Command {
@@ -61,6 +62,7 @@ func NewRootCmd() *cobra.Command {
 			opts := gsq.QueryOptions{
 				Game:    flagGame,
 				Timeout: flagTimeout,
+				Players: flagPlayers,
 			}
 
 			info, err := gsq.Query(ctx, host, uint16(port), opts)
@@ -75,6 +77,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.Flags().StringVar(&flagGame, "game", "", "game slug to skip auto-detection (e.g. cs2, minecraft)")
 	rootCmd.Flags().BoolVar(&flagJSON, "json", false, "output as JSON")
 	rootCmd.Flags().DurationVar(&flagTimeout, "timeout", 5*time.Second, "query timeout")
+	rootCmd.Flags().BoolVar(&flagPlayers, "players", false, "fetch player list")
 	rootCmd.PersistentFlags().BoolVar(&flagDebug, "debug", false, "enable debug logging")
 
 	rootCmd.SilenceUsage = true
