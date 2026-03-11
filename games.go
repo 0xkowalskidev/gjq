@@ -15,7 +15,7 @@ var gameRegistry = []GameConfig{
 	{Slug: "garrys-mod", Aliases: []string{"gmod"}, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "rust", Aliases: []string{}, DefaultGamePort: 28015, DefaultQueryPort: 28017, Protocol: "source"},
 	{Slug: "ark-survival-evolved", Aliases: []string{"ark"}, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
-	{Slug: "dayz", Aliases: []string{}, DefaultGamePort: 2302, DefaultQueryPort: 27016, Protocol: "source"},
+	{Slug: "dayz", Aliases: []string{}, DefaultGamePort: 2302, DefaultQueryPort: 2303, Protocol: "source"},
 	{Slug: "left-4-dead-2", Aliases: []string{"l4d2"}, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "minecraft", Aliases: []string{"mc"}, DefaultGamePort: 25565, DefaultQueryPort: 25565, Protocol: "minecraft"},
 }
