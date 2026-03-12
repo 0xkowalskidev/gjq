@@ -12,6 +12,7 @@ import (
 	"github.com/0xkowalskidev/gsq/internal/protocol"
 
 	// Register protocol implementations
+	_ "github.com/0xkowalskidev/gsq/internal/protocol/eos"
 	_ "github.com/0xkowalskidev/gsq/internal/protocol/minecraft"
 	_ "github.com/0xkowalskidev/gsq/internal/protocol/raknet"
 	_ "github.com/0xkowalskidev/gsq/internal/protocol/source"
@@ -39,6 +40,25 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		gc = LookupGame(opts.Game)
 		if gc == nil {
 			return nil, fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", opts.Game)
+		}
+	}
+
+	if gc != nil && gc.Protocol == "eos" {
+		clientID := gc.EOSClientID
+		clientSecret := gc.EOSClientSecret
+		if opts.EOSClientID != "" {
+			clientID = opts.EOSClientID
+		}
+		if opts.EOSClientSecret != "" {
+			clientSecret = opts.EOSClientSecret
+		}
+		queryOpts.EOS = &protocol.EOSConfig{
+			ClientID:        clientID,
+			ClientSecret:    clientSecret,
+			DeploymentID:    gc.EOSDeploymentID,
+			UseExternalAuth: gc.EOSExternalAuth,
+			UseWildcard:     gc.EOSWildcard,
+			Attributes:      gc.EOSAttributes,
 		}
 	}
 

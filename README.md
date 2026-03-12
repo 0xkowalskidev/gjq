@@ -43,11 +43,23 @@ server, err := gsq.Query(ctx, "192.168.1.100", 27015, gsq.QueryOptions{Game: "ar
 servers, err := gsq.Discover(ctx, "192.168.1.100", gsq.DiscoverOptions{})
 ```
 
-## Unsupported: EOS (Epic Online Services)
+## EOS (Epic Online Services)
 
-Some games use Epic Online Services for server discovery instead of a direct query protocol. These games are **not supported** because EOS does not allow querying game servers directly — instead, servers push their state to Epic's central API, and clients must authenticate with per-game OAuth2 credentials to read it. This makes queries dependent on Epic's infrastructure and subject to credential rotation whenever a game updates.
+Some games (ARK: Survival Ascended, Squad, The Isle: EVRIMA) use Epic's matchmaking API
+instead of a direct query protocol. gsq ships with default credentials for these games,
+but game updates may rotate them.
 
-Games that use EOS include ARK: Survival Ascended, Squad, Palworld and The Isle.
+```bash
+gsq --game asa 1.2.3.4:7777                    # uses built-in credentials
+gsq --game asa --eos-client-id X --eos-client-secret Y 1.2.3.4:7777  # override credentials
+```
+
+If the built-in credentials stop working after a game update, you can extract current
+credentials from the game's files or find them on community resources like opengsq.
+
+> **Limitation:** The EOS matchmaking API returns at most 15 sessions per request with no
+> pagination. If the server's IP hosts many game instances (common with large hosting
+> providers), the target server may not appear in the results and the query will fail.
 
 ## License
 

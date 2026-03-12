@@ -8,6 +8,12 @@ type GameConfig struct {
 	DefaultGamePort  uint16
 	DefaultQueryPort uint16
 	Protocol         string
+	EOSClientID      string
+	EOSClientSecret  string
+	EOSDeploymentID  string
+	EOSExternalAuth  bool
+	EOSWildcard      bool
+	EOSAttributes    map[string]string
 }
 
 var gameRegistry = []GameConfig{
@@ -15,7 +21,35 @@ var gameRegistry = []GameConfig{
 	{Slug: "minecraft", Name: "Minecraft", Aliases: []string{"mc"}, DefaultGamePort: 25565, DefaultQueryPort: 25565, Protocol: "minecraft"},
 	{Slug: "minecraft-bedrock", Name: "Minecraft: Bedrock Edition", Aliases: []string{"mcbe", "bedrock"}, DefaultGamePort: 19132, DefaultQueryPort: 19132, Protocol: "raknet"},
 
-	// Source engine (A2S) — roughly ordered by popularity
+	// EOS (Epic Online Services)
+	// ClientID and ClientSecret are public credentials shipped in each game's binary — they grant
+	// read-only access to Epic's matchmaking API. They may rotate when a game updates, so users
+	// can override them with --eos-client-id/--eos-client-secret. DeploymentID is tied to the game
+	// itself (not the client role) and should not rotate.
+	{
+		Slug: "ark-survival-ascended", Name: "ARK: Survival Ascended", Aliases: []string{"asa"},
+		DefaultGamePort: 7777, DefaultQueryPort: 7777, Protocol: "eos",
+		EOSClientID: "xyza7891muomRmynIIHaJB9COBKkwj6n", EOSClientSecret: "PP5UGxysEieNfSrEicaD1N2Bb3TdXuD7xHYcsdUHZ7s",
+		EOSDeploymentID: "ad9a8feffb3b4b2ca315546f038c3ae2", EOSWildcard: true,
+		EOSAttributes: map[string]string{"name": "CUSTOMSERVERNAME_s", "map": "MAPNAME_s", "password": "SERVERPASSWORD_b", "version": "BUILDID_s"},
+	},
+	{
+		Slug: "squad", Name: "Squad", Aliases: []string{},
+		DefaultGamePort: 7787, DefaultQueryPort: 7787, Protocol: "eos",
+		EOSClientID: "xyza7891J7d3GU8ZIwCoC5xdBsdoqVWA", EOSClientSecret: "4SLVBqAm09q776SIlQRTD6moM/bnGAWhDSqOxJAIS0s",
+		EOSDeploymentID: "5dee4062a90b42cd98fcad618b6636c2", EOSExternalAuth: true,
+		EOSAttributes: map[string]string{"name": "SERVERNAME_s", "password": "PASSWORD_b", "version": "GAMEVERSION_s"},
+	},
+	{
+		Slug: "the-isle-evrima", Name: "The Isle: EVRIMA", Aliases: []string{"evrima"},
+		DefaultGamePort: 7777, DefaultQueryPort: 7777, Protocol: "eos",
+		EOSClientID: "xyza7891gk5PRo3J7G9puCJGFJjmEguW", EOSClientSecret: "pKWl6t5i9NJK8gTpVlAxzENZ65P8hYzodV8Dqe5Rlc8",
+		EOSDeploymentID: "6db6bea492f94b1bbdfcdfe3e4f898dc",
+		EOSAttributes:   map[string]string{"name": "SERVERNAME_s", "map": "MAP_NAME_s", "version": "SERVER_VERSION_s"},
+	},
+
+	// Source engine (A2S)
+	{Slug: "the-isle", Name: "The Isle", Aliases: []string{"isle"}, AppID: 376210, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "counter-strike-2", Name: "Counter-Strike 2", Aliases: []string{"cs2"}, AppID: 730, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "counter-strike", Name: "Counter-Strike 1.6", Aliases: []string{"cs16", "cs"}, AppID: 10, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "counter-strike-source", Name: "Counter-Strike: Source", Aliases: []string{"css"}, AppID: 240, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},

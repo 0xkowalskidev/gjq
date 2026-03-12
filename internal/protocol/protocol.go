@@ -55,9 +55,19 @@ type PlayerInfo struct {
 	Duration Duration `json:"duration"`
 }
 
+type EOSConfig struct {
+	ClientID        string
+	ClientSecret    string
+	DeploymentID    string
+	UseExternalAuth bool              // false=client_credentials, true=device ID flow
+	UseWildcard     bool              // use /wildcard/matchmaking/ endpoint
+	Attributes      map[string]string // canonical name -> game-specific attribute key
+}
+
 type QueryOpts struct {
 	Players    bool
 	ResolvedIP string // pre-resolved IP to skip redundant DNS lookups
+	EOS        *EOSConfig
 }
 
 type Querier interface {

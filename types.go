@@ -11,9 +11,11 @@ type ServerInfo = protocol.ServerInfo
 type PlayerInfo = protocol.PlayerInfo
 
 type QueryOptions struct {
-	Game    string
-	Timeout time.Duration
-	Players bool
+	Game            string
+	Timeout         time.Duration
+	Players         bool
+	EOSClientID     string
+	EOSClientSecret string
 }
 
 type DiscoverOptions struct {

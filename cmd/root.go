@@ -14,11 +14,13 @@ import (
 )
 
 var (
-	flagGame    string
-	flagJSON    bool
-	flagTimeout time.Duration
-	flagDebug   bool
-	flagPlayers bool
+	flagGame            string
+	flagJSON            bool
+	flagTimeout         time.Duration
+	flagDebug           bool
+	flagPlayers         bool
+	flagEOSClientID     string
+	flagEOSClientSecret string
 )
 
 func NewRootCmd() *cobra.Command {
@@ -59,10 +61,21 @@ func NewRootCmd() *cobra.Command {
 			}
 
 			ctx := context.Background()
+			eosClientID := flagEOSClientID
+			if eosClientID == "" {
+				eosClientID = os.Getenv("GSQ_EOS_CLIENT_ID")
+			}
+			eosClientSecret := flagEOSClientSecret
+			if eosClientSecret == "" {
+				eosClientSecret = os.Getenv("GSQ_EOS_CLIENT_SECRET")
+			}
+
 			opts := gsq.QueryOptions{
-				Game:    flagGame,
-				Timeout: flagTimeout,
-				Players: flagPlayers,
+				Game:            flagGame,
+				Timeout:         flagTimeout,
+				Players:         flagPlayers,
+				EOSClientID:     eosClientID,
+				EOSClientSecret: eosClientSecret,
 			}
 
 			info, err := gsq.Query(ctx, host, uint16(port), opts)
@@ -79,6 +92,8 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.Flags().BoolVar(&flagJSON, "json", false, "output as JSON")
 	rootCmd.Flags().DurationVar(&flagTimeout, "timeout", 5*time.Second, "query timeout")
 	rootCmd.Flags().BoolVar(&flagPlayers, "players", false, "fetch player list")
+	rootCmd.Flags().StringVar(&flagEOSClientID, "eos-client-id", "", "override EOS client ID")
+	rootCmd.Flags().StringVar(&flagEOSClientSecret, "eos-client-secret", "", "override EOS client secret")
 	rootCmd.PersistentFlags().BoolVar(&flagDebug, "debug", false, "enable debug logging")
 
 	rootCmd.SilenceUsage = true
