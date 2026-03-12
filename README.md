@@ -43,6 +43,12 @@ server, err := gsq.Query(ctx, "192.168.1.100", 27015, gsq.QueryOptions{Game: "ar
 servers, err := gsq.Discover(ctx, "192.168.1.100", gsq.DiscoverOptions{})
 ```
 
+## Unsupported: EOS (Epic Online Services)
+
+Some games use Epic Online Services for server discovery instead of a direct query protocol. These games are **not supported** because EOS does not allow querying game servers directly — instead, servers push their state to Epic's central API, and clients must authenticate with per-game OAuth2 credentials to read it. This makes queries dependent on Epic's infrastructure and subject to credential rotation whenever a game updates.
+
+Games that use EOS include ARK: Survival Ascended, Squad, Palworld and The Isle.
+
 ## License
 
 MIT
