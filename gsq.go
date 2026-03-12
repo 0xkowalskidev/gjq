@@ -33,74 +33,92 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 
 	queryOpts := protocol.QueryOpts{Players: opts.Players, ResolvedIP: resolvedIP}
 
+	var gc *GameConfig
 	if opts.Game != "" {
-		return queryByGame(ctx, address, port, opts.Game, queryOpts)
-	}
-
-	candidatePorts := []uint16{port}
-	for _, g := range SupportedGames() {
-		if g.DefaultQueryPort > g.DefaultGamePort {
-			offset := g.DefaultQueryPort - g.DefaultGamePort
-			candidatePorts = append(candidatePorts, port+offset)
+		gc = LookupGame(opts.Game)
+		if gc == nil {
+			return nil, fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", opts.Game)
 		}
 	}
-	candidatePorts = dedupPorts(candidatePorts...)
+
+	candidatePorts := buildCandidatePorts(port, gc)
 
 	var attempts []attempt
-	for _, p := range candidatePorts {
-		for name := range protocol.All() {
-			attempts = append(attempts, attempt{port: p, protocol: name})
+	if gc != nil {
+		for _, p := range candidatePorts {
+			attempts = append(attempts, attempt{port: p, protocol: gc.Protocol})
+		}
+	} else {
+		for _, p := range candidatePorts {
+			for name := range protocol.All() {
+				attempts = append(attempts, attempt{port: p, protocol: name})
+			}
 		}
 	}
 
 	info, err := raceQuery(ctx, address, attempts, queryOpts)
 	if err != nil {
+		if gc != nil {
+			return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, opts.Game, err)
+		}
 		return nil, fmt.Errorf("no protocol matched for %s:%d: %w", address, port, err)
 	}
-	inferGamePort(info)
-	resolveGameName(info)
+
+	enrichResult(info, gc)
 	return info, nil
 }
 
-func queryByGame(ctx context.Context, address string, givenPort uint16, game string, queryOpts protocol.QueryOpts) (*ServerInfo, error) {
-	gc := LookupGame(game)
-	if gc == nil {
-		return nil, fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", game)
+// Discover scans a host for game servers by probing known default ports
+// or a custom port range with all registered protocols.
+func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*ServerInfo, error) {
+	ports := collectPorts(opts.PortRanges)
+
+	workers := 256
+	portCh := make(chan uint16, workers)
+	resultCh := make(chan *ServerInfo, workers)
+
+	var wg sync.WaitGroup
+	for range workers {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for port := range portCh {
+				info, err := Query(ctx, address, port, QueryOptions{
+					Timeout: opts.Timeout,
+					Players: opts.Players,
+				})
+				if err != nil {
+					continue
+				}
+				resultCh <- info
+			}
+		}()
 	}
 
-	var candidatePorts []uint16
-	if gc.DefaultQueryPort >= gc.DefaultGamePort {
-		offset := gc.DefaultQueryPort - gc.DefaultGamePort
-		candidatePorts = dedupPorts(givenPort, givenPort+offset, gc.DefaultQueryPort)
-	} else {
-		candidatePorts = dedupPorts(givenPort, gc.DefaultQueryPort)
-	}
-
-	var attempts []attempt
-	for _, p := range candidatePorts {
-		attempts = append(attempts, attempt{port: p, protocol: gc.Protocol})
-	}
-
-	info, err := raceQuery(ctx, address, attempts, queryOpts)
-	if err != nil {
-		return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, game, err)
-	}
-
-	// info.GamePort is the port we actually queried on
-	queriedPort := info.GamePort
-	info.QueryPort = queriedPort
-	if gc.DefaultQueryPort > gc.DefaultGamePort {
-		offset := gc.DefaultQueryPort - gc.DefaultGamePort
-		if queriedPort >= offset {
-			info.GamePort = queriedPort - offset
+	go func() {
+		for _, port := range ports {
+			portCh <- port
 		}
-	} else {
-		info.GamePort = givenPort
-	}
-	info.Game = gc.Name
-	sanitizeInfo(info)
+		close(portCh)
+	}()
 
-	return info, nil
+	go func() {
+		wg.Wait()
+		close(resultCh)
+	}()
+
+	seen := make(map[string]bool)
+	var servers []*ServerInfo
+	for info := range resultCh {
+		key := fmt.Sprintf("%s:%d", info.Protocol, info.QueryPort)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		servers = append(servers, info)
+	}
+
+	return servers, nil
 }
 
 type attempt struct {
@@ -125,11 +143,21 @@ func raceQuery(ctx context.Context, address string, attempts []attempt, queryOpt
 		wg.Add(1)
 		go func(a attempt) {
 			defer wg.Done()
-			info, err := queryWithProtocol(ctx, address, a.port, a.protocol, queryOpts)
+
+			q, err := protocol.Get(a.protocol)
 			if err != nil {
+				resultCh <- result{err: fmt.Errorf("get protocol %q: %w", a.protocol, err)}
+				return
+			}
+
+			slog.Debug("querying server", "protocol", a.protocol, "address", address, "port", a.port)
+			info, err := q.Query(ctx, address, a.port, queryOpts)
+			if err != nil {
+				slog.Debug("query failed", "protocol", a.protocol, "address", address, "port", a.port, "error", err)
 				resultCh <- result{err: err}
 				return
 			}
+			slog.Debug("query succeeded", "protocol", a.protocol, "address", address, "port", a.port)
 			resultCh <- result{info: info}
 		}(a)
 	}
@@ -151,90 +179,76 @@ func raceQuery(ctx context.Context, address string, attempts []attempt, queryOpt
 	return nil, lastErr
 }
 
-func queryWithProtocol(ctx context.Context, address string, port uint16, protoName string, queryOpts protocol.QueryOpts) (*ServerInfo, error) {
-	q, err := protocol.Get(protoName)
-	if err != nil {
-		return nil, fmt.Errorf("get protocol %q: %w", protoName, err)
-	}
-
-	slog.Debug("querying server", "protocol", protoName, "address", address, "port", port)
-	info, err := q.Query(ctx, address, port, queryOpts)
-	if err != nil {
-		slog.Debug("query failed", "protocol", protoName, "address", address, "port", port, "error", err)
-		return nil, err
-	}
-	slog.Debug("query succeeded", "protocol", protoName, "address", address, "port", port)
-	return info, nil
-}
-
-// Discover scans a host for game servers by probing known default ports
-// or a custom port range with all registered protocols.
-func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*ServerInfo, error) {
-	resolvedIP, err := resolveHost(ctx, address)
-	if err != nil {
-		return nil, fmt.Errorf("resolve %s: %w", address, err)
-	}
-
-	queryOpts := protocol.QueryOpts{Players: opts.Players, ResolvedIP: resolvedIP}
-
-	ports := collectPorts(opts.PortRanges)
-	protocols := protocol.All()
-
-	protoNames := make([]string, 0, len(protocols))
-	for name := range protocols {
-		protoNames = append(protoNames, name)
-	}
-
-	workers := 256
-	probeCh := make(chan attempt, workers)
-	resultCh := make(chan *ServerInfo, workers)
-
-	var wg sync.WaitGroup
-	for range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for p := range probeCh {
-				probeCtx := ctx
-				var cancel context.CancelFunc
-				if opts.Timeout > 0 {
-					probeCtx, cancel = context.WithTimeout(ctx, opts.Timeout)
-				}
-
-				info, err := queryWithProtocol(probeCtx, address, p.port, p.protocol, queryOpts)
-				if cancel != nil {
-					cancel()
-				}
-				if err != nil {
-					continue
-				}
-				inferGamePort(info)
-				resolveGameName(info)
-				resultCh <- info
-			}
-		}()
-	}
-
-	go func() {
-		for _, port := range ports {
-			for _, name := range protoNames {
-				probeCh <- attempt{port: port, protocol: name}
+func buildCandidatePorts(givenPort uint16, gc *GameConfig) []uint16 {
+	ports := []uint16{givenPort}
+	if gc != nil {
+		ports = append(ports, gc.DefaultQueryPort)
+		if gc.DefaultQueryPort >= gc.DefaultGamePort {
+			offset := gc.DefaultQueryPort - gc.DefaultGamePort
+			ports = append(ports, givenPort+offset)
+		}
+	} else {
+		for _, g := range SupportedGames() {
+			if g.DefaultQueryPort > g.DefaultGamePort {
+				offset := g.DefaultQueryPort - g.DefaultGamePort
+				ports = append(ports, givenPort+offset)
 			}
 		}
-		close(probeCh)
-	}()
+	}
+	return dedupPorts(ports...)
+}
 
-	go func() {
-		wg.Wait()
-		close(resultCh)
-	}()
-
-	var servers []*ServerInfo
-	for info := range resultCh {
-		servers = append(servers, info)
+// enrichResult sets game/query ports and game name from the GameConfig.
+// If gc is nil, it attempts to look up by AppID.
+func enrichResult(info *ServerInfo, gc *GameConfig) {
+	if gc == nil {
+		if info.AppID != 0 {
+			gc = LookupGameByAppID(info.AppID)
+		} else if info.Protocol == "minecraft" {
+			gc = LookupGame("minecraft")
+		}
 	}
 
-	return servers, nil
+	if gc != nil && gc.DefaultQueryPort > gc.DefaultGamePort {
+		offset := gc.DefaultQueryPort - gc.DefaultGamePort
+		queriedPort := info.GamePort
+		if queriedPort >= offset {
+			info.GamePort = queriedPort - offset
+			info.QueryPort = queriedPort
+		}
+	}
+
+	if gc != nil {
+		info.Game = gc.Name
+	} else {
+		info.Game = sanitize(info.Game)
+	}
+	sanitizeInfo(info)
+}
+
+var tagRegex = regexp.MustCompile(`<[^>]+>`)
+
+func sanitize(s string) string {
+	return strings.TrimSpace(tagRegex.ReplaceAllString(s, ""))
+}
+
+func sanitizeInfo(info *ServerInfo) {
+	info.Name = sanitize(info.Name)
+	info.Map = sanitize(info.Map)
+}
+
+// resolveHost resolves a hostname to an IP once so concurrent queries don't repeat DNS.
+// If the address is already an IP, it returns it as-is.
+func resolveHost(ctx context.Context, address string) (string, error) {
+	if net.ParseIP(address) != nil {
+		return address, nil
+	}
+	ips, err := net.DefaultResolver.LookupHost(ctx, address)
+	if err != nil {
+		return "", err
+	}
+	slog.Debug("resolved host", "host", address, "ip", ips[0])
+	return ips[0], nil
 }
 
 func collectPorts(portRanges []PortRange) []uint16 {
@@ -253,70 +267,6 @@ func collectPorts(portRanges []PortRange) []uint16 {
 	}
 
 	return dedupPorts(ports...)
-}
-
-// inferGamePort identifies the game via AppID and infers the game port from the
-// known query-to-game port offset. Used by auto-detect Query and Discover.
-func inferGamePort(info *ServerInfo) {
-	queriedPort := info.GamePort
-
-	var gc *GameConfig
-	if info.AppID != 0 {
-		gc = LookupGameByAppID(info.AppID)
-	} else if info.Protocol == "minecraft" {
-		gc = LookupGame("minecraft")
-	}
-
-	if gc != nil && gc.DefaultQueryPort > gc.DefaultGamePort {
-		offset := gc.DefaultQueryPort - gc.DefaultGamePort
-		if queriedPort >= offset {
-			info.GamePort = queriedPort - offset
-			info.QueryPort = queriedPort
-		}
-	}
-}
-
-var tagRegex = regexp.MustCompile(`<[^>]+>`)
-
-func sanitize(s string) string {
-	return strings.TrimSpace(tagRegex.ReplaceAllString(s, ""))
-}
-
-func sanitizeInfo(info *ServerInfo) {
-	info.Name = sanitize(info.Name)
-	info.Map = sanitize(info.Map)
-}
-
-// resolveGameName sets the Game field from our registry if the AppID matches,
-// otherwise sanitizes the server-reported value.
-func resolveGameName(info *ServerInfo) {
-	var gc *GameConfig
-	if info.AppID != 0 {
-		gc = LookupGameByAppID(info.AppID)
-	} else if info.Protocol == "minecraft" {
-		gc = LookupGame("minecraft")
-	}
-
-	if gc != nil {
-		info.Game = gc.Name
-	} else {
-		info.Game = sanitize(info.Game)
-	}
-	sanitizeInfo(info)
-}
-
-// resolveHost resolves a hostname to an IP once so concurrent queries don't repeat DNS.
-// If the address is already an IP, it returns it as-is.
-func resolveHost(ctx context.Context, address string) (string, error) {
-	if net.ParseIP(address) != nil {
-		return address, nil
-	}
-	ips, err := net.DefaultResolver.LookupHost(ctx, address)
-	if err != nil {
-		return "", err
-	}
-	slog.Debug("resolved host", "host", address, "ip", ips[0])
-	return ips[0], nil
 }
 
 func dedupPorts(ports ...uint16) []uint16 {
