@@ -52,7 +52,7 @@ func NewRootCmd() *cobra.Command {
 					return fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", flagGame)
 				}
 				host = args[0]
-				portStr = strconv.FormatUint(uint64(gc.DefaultGamePort), 10)
+				portStr = strconv.FormatUint(uint64(gc.DefaultQueryPort), 10)
 			}
 
 			port, err := strconv.ParseUint(portStr, 10, 16)

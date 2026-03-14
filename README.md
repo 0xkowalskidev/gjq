@@ -61,6 +61,17 @@ credentials from the game's files or find them on community resources like openg
 > pagination. If the server's IP hosts many game instances (common with large hosting
 > providers), the target server may not appear in the results and the query will fail.
 
+## Terraria (TShock)
+
+Terraria support requires the [TShock](https://github.com/Pryaxis/TShock) server mod. Vanilla
+Terraria servers have no external query protocol. gsq queries TShock's REST API on port 7878
+(the `/status` endpoint, which requires no token).
+
+```bash
+gsq --game terraria 192.168.1.100           # queries TShock REST API on port 7878
+gsq --game terraria 192.168.1.100:7900      # custom REST API port
+```
+
 ## License
 
 MIT

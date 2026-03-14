@@ -16,6 +16,7 @@ import (
 	_ "github.com/0xkowalskidev/gsq/internal/protocol/minecraft"
 	_ "github.com/0xkowalskidev/gsq/internal/protocol/raknet"
 	_ "github.com/0xkowalskidev/gsq/internal/protocol/source"
+	_ "github.com/0xkowalskidev/gsq/internal/protocol/tshock"
 )
 
 // Query queries a game server at the given address and port.
@@ -249,7 +250,9 @@ func enrichResult(info *ServerInfo, gc *GameConfig) {
 		}
 	}
 
-	if gc != nil && gc.DefaultQueryPort > gc.DefaultGamePort {
+	// Infer game port from query port offset, but only when the protocol didn't
+	// already report distinct ports (e.g. TShock reports both from the response).
+	if gc != nil && gc.DefaultQueryPort > gc.DefaultGamePort && info.GamePort == info.QueryPort {
 		offset := gc.DefaultQueryPort - gc.DefaultGamePort
 		queriedPort := info.GamePort
 		if queriedPort >= offset {

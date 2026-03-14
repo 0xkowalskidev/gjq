@@ -55,6 +55,9 @@ var gameRegistry = []GameConfig{
 		EOSAttributes:   map[string]string{"name": "SERVERNAME_s", "map": "MAP_NAME_s", "version": "SERVER_VERSION_s"},
 	},
 
+	// TShock (Terraria with TShock mod — vanilla Terraria has no query protocol)
+	{Slug: "terraria", Name: "Terraria", Aliases: []string{"tshock"}, DefaultGamePort: 7777, DefaultQueryPort: 7878, Protocol: "tshock"},
+
 	// Source engine (A2S)
 	{Slug: "the-isle", Name: "The Isle", Aliases: []string{"isle"}, AppID: 376210, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source"},
 	{Slug: "counter-strike-2", Name: "Counter-Strike 2", Aliases: []string{"cs2"}, AppID: 730, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source"},
