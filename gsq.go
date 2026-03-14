@@ -62,48 +62,57 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		}
 	}
 
-	// Build candidate ports
+	// Build ordered candidate ports: user's port first, then offset-derived fallback.
+	// Candidates are tried sequentially to avoid cross-talk between servers on different ports.
 	candidatePorts := []uint16{port}
-	if gc != nil {
-		candidatePorts = append(candidatePorts, gc.DefaultQueryPort)
-		if gc.DefaultQueryPort >= gc.DefaultGamePort {
-			offset := gc.DefaultQueryPort - gc.DefaultGamePort
-			candidatePorts = append(candidatePorts, port+offset)
+	if gc != nil && gc.DefaultQueryPort != gc.DefaultGamePort {
+		offset := gc.DefaultQueryPort - gc.DefaultGamePort
+		derived := port + offset
+		if derived != port {
+			candidatePorts = append(candidatePorts, derived)
 		}
-	} else {
+	} else if gc == nil {
+		// Auto-detect: add offset-derived ports as fallbacks
+		seen := map[uint16]bool{port: true}
 		for _, g := range SupportedGames() {
 			if g.DefaultQueryPort > g.DefaultGamePort {
 				offset := g.DefaultQueryPort - g.DefaultGamePort
-				candidatePorts = append(candidatePorts, port+offset)
+				derived := port + offset
+				if !seen[derived] {
+					seen[derived] = true
+					candidatePorts = append(candidatePorts, derived)
+				}
 			}
 		}
 	}
-	candidatePorts = dedupPorts(candidatePorts...)
 
-	// Build attempts
-	var attempts []attempt
-	if gc != nil {
-		for _, p := range candidatePorts {
-			attempts = append(attempts, attempt{port: p, protocol: gc.Protocol})
-		}
-	} else {
-		for _, p := range candidatePorts {
+	// Try each candidate port sequentially; within a port, race across protocols.
+	var lastErr error
+	for _, p := range candidatePorts {
+		var attempts []attempt
+		if gc != nil {
+			attempts = []attempt{{port: p, protocol: gc.Protocol}}
+		} else {
 			for name := range protocol.All() {
 				attempts = append(attempts, attempt{port: p, protocol: name})
 			}
 		}
-	}
 
-	info, err := raceQuery(ctx, address, attempts, queryOpts)
-	if err != nil {
-		if gc != nil {
-			return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, opts.Game, err)
+		info, err := raceQuery(ctx, address, attempts, queryOpts)
+		if err != nil {
+			lastErr = err
+			slog.Debug("candidate port failed, trying next", "port", p, "error", err)
+			continue
 		}
-		return nil, fmt.Errorf("no protocol matched for %s:%d: %w", address, port, err)
+
+		enrichResult(info, gc)
+		return info, nil
 	}
 
-	enrichResult(info, gc)
-	return info, nil
+	if gc != nil {
+		return nil, fmt.Errorf("no query port worked for %s (game %s): %w", address, opts.Game, lastErr)
+	}
+	return nil, fmt.Errorf("no protocol matched for %s:%d: %w", address, port, lastErr)
 }
 
 // Discover scans a host for game servers by probing known default ports
