@@ -21,6 +21,9 @@ const (
 	a2sPlayerRequest  = 0x55
 	a2sPlayerResponse = 0x44
 
+	a2sRulesRequest  = 0x56
+	a2sRulesResponse = 0x45
+
 	challengeResponse = 0x41
 
 	singlePacketHeader = 0xFFFFFFFF
@@ -75,9 +78,20 @@ func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16, 
 		players, err := queryPlayers(conn)
 		if err != nil {
 			slog.Debug("a2s_player query failed", "error", err)
-			return info, nil
+		} else {
+			info.PlayerList = players
 		}
-		info.PlayerList = players
+	}
+
+	if opts.Rules {
+		conn.SetDeadline(deadline)
+
+		rules, err := queryRules(conn)
+		if err != nil {
+			slog.Debug("a2s_rules query failed", "error", err)
+		} else {
+			info.Rules = rules
+		}
 	}
 
 	return info, nil
@@ -235,8 +249,8 @@ func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
 		return nil, fmt.Errorf("read map: %w", err)
 	}
 
-	// folder — not used
-	if _, err := readString(r); err != nil {
+	folder, err := readString(r)
+	if err != nil {
 		return nil, fmt.Errorf("read folder: %w", err)
 	}
 
@@ -275,6 +289,11 @@ func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
 		Visibility:  visibilityString(fields.Visibility),
 		VAC:         fields.VAC == 1,
 		Version:     version,
+		Extra:       make(map[string]any),
+	}
+
+	if folder != "" {
+		info.Extra["folder"] = folder
 	}
 
 	// Parse Extra Data Flag (EDF) fields in spec order
@@ -283,7 +302,10 @@ func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
 			r.Seek(2, io.SeekCurrent) // skip EDF game port — unreliable in containerized setups
 		}
 		if edf&0x10 != 0 {
-			r.Seek(8, io.SeekCurrent) // skip SteamID (uint64)
+			var steamID uint64
+			if err := binary.Read(r, binary.LittleEndian, &steamID); err == nil {
+				info.Extra["steamId"] = steamID
+			}
 		}
 		if edf&0x40 != 0 {
 			r.Seek(2, io.SeekCurrent) // skip spectator port (uint16)
@@ -383,6 +405,66 @@ func parsePlayerResponse(data []byte) ([]protocol.PlayerInfo, error) {
 	}
 
 	return players, nil
+}
+
+func queryRules(conn net.Conn) (map[string]string, error) {
+	// Send initial request with 0xFFFFFFFF challenge to get the real challenge
+	challengeReq := []byte{0xFF, 0xFF, 0xFF, 0xFF, a2sRulesRequest, 0xFF, 0xFF, 0xFF, 0xFF}
+
+	if _, err := conn.Write(challengeReq); err != nil {
+		return nil, fmt.Errorf("send rules challenge: %w", err)
+	}
+
+	data, err := readResponse(conn)
+	if err != nil {
+		return nil, fmt.Errorf("read rules challenge: %w", err)
+	}
+
+	if len(data) >= 5 && data[0] == challengeResponse {
+		challenge := data[1:5]
+		rulesReq := []byte{0xFF, 0xFF, 0xFF, 0xFF, a2sRulesRequest}
+		rulesReq = append(rulesReq, challenge...)
+
+		if _, err := conn.Write(rulesReq); err != nil {
+			return nil, fmt.Errorf("send rules request: %w", err)
+		}
+
+		data, err = readResponse(conn)
+		if err != nil {
+			return nil, fmt.Errorf("read rules response: %w", err)
+		}
+	}
+
+	if len(data) < 3 || data[0] != a2sRulesResponse {
+		return nil, fmt.Errorf("unexpected rules response type: 0x%02x", data[0])
+	}
+
+	return parseRulesResponse(data[1:])
+}
+
+func parseRulesResponse(data []byte) (map[string]string, error) {
+	r := bytes.NewReader(data)
+
+	var ruleCount uint16
+	if err := binary.Read(r, binary.LittleEndian, &ruleCount); err != nil {
+		return nil, fmt.Errorf("read rule count: %w", err)
+	}
+
+	rules := make(map[string]string, ruleCount)
+
+	for i := 0; i < int(ruleCount); i++ {
+		name, err := readString(r)
+		if err != nil {
+			break
+		}
+		value, err := readString(r)
+		if err != nil {
+			break
+		}
+		rules[name] = value
+	}
+
+	return rules, nil
 }
 
 func readString(r *bytes.Reader) (string, error) {

@@ -19,13 +19,16 @@ func init() {
 }
 
 type statusResponse struct {
-	Name          string `json:"name"`
-	Port          int    `json:"port"`
-	PlayerCount   int    `json:"playercount"`
-	MaxPlayers    int    `json:"maxplayers"`
-	World         string `json:"world"`
-	Players       string `json:"players"`
-	ServerVersion string `json:"serverversion"`
+	Name           string `json:"name"`
+	Port           int    `json:"port"`
+	PlayerCount    int    `json:"playercount"`
+	MaxPlayers     int    `json:"maxplayers"`
+	World          string `json:"world"`
+	Players        string `json:"players"`
+	ServerVersion  string `json:"serverversion"`
+	ServerPassword bool   `json:"serverpassword"`
+	TShockVersion  string `json:"tshockversion"`
+	Uptime         string `json:"uptime"`
 }
 
 func (q *tshockQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
@@ -71,6 +74,11 @@ func (q *tshockQuerier) Query(ctx context.Context, address string, port uint16, 
 		name = status.World
 	}
 
+	visibility := "public"
+	if status.ServerPassword {
+		visibility = "private"
+	}
+
 	info := &protocol.ServerInfo{
 		Protocol:   "tshock",
 		Name:       name,
@@ -78,9 +86,20 @@ func (q *tshockQuerier) Query(ctx context.Context, address string, port uint16, 
 		Players:    status.PlayerCount,
 		MaxPlayers: status.MaxPlayers,
 		Version:    status.ServerVersion,
+		Visibility: visibility,
 		GamePort:   uint16(status.Port),
 		QueryPort:  port,
 		Ping:       protocol.Duration{Duration: ping},
+	}
+
+	if status.TShockVersion != "" || status.Uptime != "" {
+		info.Extra = make(map[string]any)
+		if status.TShockVersion != "" {
+			info.Extra["tshockVersion"] = status.TShockVersion
+		}
+		if status.Uptime != "" {
+			info.Extra["uptime"] = status.Uptime
+		}
 	}
 
 	if opts.Players && status.Players != "" {

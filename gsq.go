@@ -42,7 +42,7 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		return nil, fmt.Errorf("resolve %s: %w", address, err)
 	}
 
-	queryOpts := protocol.QueryOpts{Players: opts.Players, ResolvedIP: resolvedIP}
+	queryOpts := protocol.QueryOpts{Players: opts.Players, Rules: opts.Rules, ResolvedIP: resolvedIP}
 
 	var gc *GameConfig
 	if opts.Game != "" {
@@ -53,6 +53,13 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 	}
 
 	if gc != nil {
+		if opts.Players && !gc.HasSupport("players") {
+			return nil, fmt.Errorf("%s does not support --players", gc.Name)
+		}
+		if opts.Rules && !gc.HasSupport("rules") {
+			return nil, fmt.Errorf("%s does not support --rules", gc.Name)
+		}
+
 		if eosCfg, ok := gc.ProtocolConfig.(*protocol.EOSConfig); ok {
 			cfg := *eosCfg
 			if opts.EOSClientID != "" {
@@ -338,11 +345,18 @@ func enrichResult(info *ServerInfo, gc *GameConfig) {
 
 	if gc != nil {
 		info.Game = gc.Name
+		if gc.Notes != "" {
+			if info.Extra == nil {
+				info.Extra = make(map[string]any)
+			}
+			info.Extra["gameNotes"] = gc.Notes
+		}
 	} else {
 		info.Game = sanitize(info.Game)
 	}
 	info.Name = sanitize(info.Name)
 	info.Map = sanitize(info.Map)
+	info.GameMode = sanitize(info.GameMode)
 	info.Version = sanitize(info.Version)
 	info.Keywords = sanitize(info.Keywords)
 	info.ServerType = sanitize(info.ServerType)

@@ -101,11 +101,26 @@ func parsePong(buf []byte, address string, port uint16, ping time.Duration) (*pr
 		Ping:       protocol.Duration{Duration: ping},
 		GamePort:   port,
 		QueryPort:  port,
+		Extra:      make(map[string]any),
 	}
 
-	// Optional fields
+	// Edition (MCPE = Bedrock, MCEE = Education Edition)
+	info.Extra["edition"] = fields[0]
+	switch fields[0] {
+	case "MCPE":
+		info.Game = "Minecraft: Bedrock Edition"
+	case "MCEE":
+		info.Game = "Minecraft: Education Edition"
+	}
+
+	if len(fields) > 6 {
+		info.Extra["serverUniqueId"] = fields[6]
+	}
+	if len(fields) > 7 {
+		info.Map = fields[7] // Sub-MOTD / level name
+	}
 	if len(fields) > 8 {
-		info.Map = fields[8] // game mode string (Survival/Creative/Adventure)
+		info.GameMode = fields[8]
 	}
 	if len(fields) > 10 {
 		if p, err := strconv.Atoi(fields[10]); err == nil && p > 0 && p <= 65535 {

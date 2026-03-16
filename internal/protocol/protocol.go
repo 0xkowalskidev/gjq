@@ -28,11 +28,17 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+type ModInfo struct {
+	ID      string `json:"id"`
+	Version string `json:"version"`
+}
+
 type ServerInfo struct {
 	Protocol    string       `json:"protocol"`
 	Name        string       `json:"name"`
 	Map         string       `json:"map"`
 	Game        string       `json:"game"`
+	GameMode    string       `json:"gameMode,omitempty"`
 	Players     int          `json:"players"`
 	MaxPlayers  int          `json:"maxPlayers"`
 	Bots        int          `json:"bots"`
@@ -48,6 +54,9 @@ type ServerInfo struct {
 	GamePort    uint16       `json:"gamePort"`
 	QueryPort   uint16       `json:"queryPort"`
 	PlayerList  []PlayerInfo `json:"playerList,omitempty"`
+	Rules       map[string]string `json:"rules,omitempty"`
+	Mods        []ModInfo         `json:"mods,omitempty"`
+	Extra       map[string]any    `json:"extra,omitempty"`
 }
 
 type PlayerInfo struct {
@@ -67,6 +76,7 @@ type EOSConfig struct {
 
 type QueryOpts struct {
 	Players    bool
+	Rules      bool
 	ResolvedIP string // pre-resolved IP to skip redundant DNS lookups
 	EOS        *EOSConfig
 }

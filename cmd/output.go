@@ -47,6 +47,9 @@ func printTable(info *gsq.ServerInfo) {
 	if info.Map != "" {
 		fmt.Printf("%-12s %s\n", "Map:", info.Map)
 	}
+	if info.GameMode != "" {
+		fmt.Printf("%-12s %s\n", "Game Mode:", info.GameMode)
+	}
 	fmt.Printf("%-12s %d / %d\n", "Players:", info.Players, info.MaxPlayers)
 
 	if info.Bots > 0 {
@@ -69,6 +72,9 @@ func printTable(info *gsq.ServerInfo) {
 	}
 	if info.Keywords != "" {
 		fmt.Printf("%-12s %s\n", "Keywords:", info.Keywords)
+	}
+	if len(info.Mods) > 0 {
+		fmt.Printf("%-12s %d mods\n", "Mods:", len(info.Mods))
 	}
 	fmt.Printf("%-12s %s\n", "Protocol:", info.Protocol)
 	fmt.Printf("%-12s %s\n", "Ping:", info.Ping.Round(time.Millisecond).String())

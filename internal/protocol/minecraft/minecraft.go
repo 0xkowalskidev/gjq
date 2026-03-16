@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/0xkowalskidev/gsq/internal/protocol"
@@ -21,8 +22,10 @@ func init() {
 
 // statusResponse is the JSON structure returned by the Minecraft server.
 type statusResponse struct {
-	Description interface{} `json:"description"`
-	Players     struct {
+	Description        interface{} `json:"description"`
+	Favicon            string      `json:"favicon"`
+	EnforcesSecureChat bool        `json:"enforcesSecureChat"`
+	Players            struct {
 		Max    int `json:"max"`
 		Online int `json:"online"`
 		Sample []struct {
@@ -34,6 +37,25 @@ type statusResponse struct {
 		Name     string `json:"name"`
 		Protocol int    `json:"protocol"`
 	} `json:"version"`
+	// Forge mod lists (two formats across Forge versions)
+	ForgeData *forgeData     `json:"forgeData"`
+	ModInfo   *modInfoLegacy `json:"modinfo"`
+}
+
+// FML2+ (Forge 1.13+)
+type forgeData struct {
+	Mods []struct {
+		ModID   string `json:"modId"`
+		Version string `json:"modmarker"`
+	} `json:"mods"`
+}
+
+// FML (Forge 1.7-1.12)
+type modInfoLegacy struct {
+	ModList []struct {
+		ModID   string `json:"modid"`
+		Version string `json:"version"`
+	} `json:"modList"`
 }
 
 func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
@@ -89,6 +111,27 @@ func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint1
 			info.PlayerList = append(info.PlayerList, protocol.PlayerInfo{
 				Name: p.Name,
 			})
+		}
+	}
+
+	// Forge mods (two possible JSON formats)
+	if status.ForgeData != nil {
+		for _, m := range status.ForgeData.Mods {
+			info.Mods = append(info.Mods, protocol.ModInfo{ID: m.ModID, Version: m.Version})
+		}
+	} else if status.ModInfo != nil {
+		for _, m := range status.ModInfo.ModList {
+			info.Mods = append(info.Mods, protocol.ModInfo{ID: m.ModID, Version: m.Version})
+		}
+	}
+
+	if status.Favicon != "" || status.EnforcesSecureChat {
+		info.Extra = make(map[string]any)
+		if status.Favicon != "" {
+			info.Extra["favicon"] = status.Favicon
+		}
+		if status.EnforcesSecureChat {
+			info.Extra["enforcesSecureChat"] = true
 		}
 	}
 
@@ -231,14 +274,22 @@ func readVarInt(r io.ByteReader) (int32, error) {
 }
 
 // extractDescription handles the various formats Minecraft servers use for the description field.
+// Descriptions can be plain strings or recursive Chat component trees with "text" and "extra" fields.
 func extractDescription(desc interface{}) string {
 	switch v := desc.(type) {
 	case string:
 		return v
 	case map[string]interface{}:
+		var sb strings.Builder
 		if text, ok := v["text"].(string); ok {
-			return text
+			sb.WriteString(text)
 		}
+		if extra, ok := v["extra"].([]interface{}); ok {
+			for _, e := range extra {
+				sb.WriteString(extractDescription(e))
+			}
+		}
+		return sb.String()
 	}
 	return ""
 }

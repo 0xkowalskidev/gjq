@@ -14,6 +14,7 @@ type QueryOptions struct {
 	Game            string
 	Timeout         time.Duration
 	Players         bool
+	Rules           bool
 	Direct          bool // treat port as the exact query port, skip port derivation
 	EOSClientID     string
 	EOSClientSecret string

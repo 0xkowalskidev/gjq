@@ -19,6 +19,7 @@ var (
 	flagTimeout         time.Duration
 	flagDebug           bool
 	flagPlayers         bool
+	flagRules           bool
 	flagDirect          bool
 	flagEOSClientID     string
 	flagEOSClientSecret string
@@ -75,6 +76,7 @@ func NewRootCmd() *cobra.Command {
 				Game:            flagGame,
 				Timeout:         flagTimeout,
 				Players:         flagPlayers,
+				Rules:           flagRules,
 				Direct:          flagDirect,
 				EOSClientID:     eosClientID,
 				EOSClientSecret: eosClientSecret,
@@ -94,6 +96,7 @@ func NewRootCmd() *cobra.Command {
 	rootCmd.Flags().BoolVar(&flagJSON, "json", false, "output as JSON")
 	rootCmd.Flags().DurationVar(&flagTimeout, "timeout", 5*time.Second, "query timeout")
 	rootCmd.Flags().BoolVar(&flagPlayers, "players", false, "fetch player list")
+	rootCmd.Flags().BoolVar(&flagRules, "rules", false, "fetch server rules/cvars")
 	rootCmd.Flags().BoolVar(&flagDirect, "direct", false, "treat port as exact query port, skip port derivation")
 	rootCmd.Flags().StringVar(&flagEOSClientID, "eos-client-id", "", "override EOS client ID")
 	rootCmd.Flags().StringVar(&flagEOSClientSecret, "eos-client-secret", "", "override EOS client secret")
