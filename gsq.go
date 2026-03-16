@@ -79,6 +79,10 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 	}
 
 	info.Address = address
+	// GamePort = user's input port. Protocol-reported game ports are unreliable
+	// (containerized servers remap ports), and offset-based guessing is wrong for
+	// non-standard layouts. The user's port is the most useful value here.
+	info.GamePort = port
 	enrichResult(info, gc)
 	return info, nil
 }
@@ -329,18 +333,6 @@ func enrichResult(info *ServerInfo, gc *GameConfig) {
 			gc = LookupGameByAppID(info.AppID)
 		} else if info.Protocol == "minecraft" {
 			gc = LookupGame("minecraft-java")
-		}
-	}
-
-	// Infer game port from query port offset, but only when the protocol didn't
-	// already report distinct ports (e.g. TShock reports both from the response).
-	if gc != nil && gc.DefaultQueryPort != gc.DefaultGamePort && info.GamePort == info.QueryPort {
-		offset := int(gc.DefaultQueryPort) - int(gc.DefaultGamePort)
-		queriedPort := int(info.GamePort)
-		gamePort := queriedPort - offset
-		if gamePort > 0 && gamePort <= 65535 {
-			info.GamePort = uint16(gamePort)
-			info.QueryPort = uint16(queriedPort)
 		}
 	}
 

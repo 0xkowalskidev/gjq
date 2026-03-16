@@ -36,7 +36,7 @@ Game:        Rust
 ...
 ```
 
-> **Note:** The game port is inferred from the query port using the known offset for each game (e.g. Rust query port = game port + 2). For servers with non-standard port layouts, such as containerized servers where port mappings don't preserve the offset, the displayed game port may be incorrect. The query port is always accurate.
+> **Note:** The **game port** is always the port you provided — this is the port players would use to connect. The **query port** is the port that actually responded to the protocol query. These may differ when gsq derives the query port from a game port you provided (e.g. you give `--game rust 192.168.1.100:28015` and gsq finds the query protocol responding on `28017`). gsq does not attempt to guess the game port from the query port, as containerized and non-standard server setups make offset-based inference unreliable.
 
 ## Library
 
