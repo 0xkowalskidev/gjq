@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/0xkowalskidev/gsq/cmd"
+	"github.com/0xkowalskidev/gjq/cmd"
 )
 
 func main() {

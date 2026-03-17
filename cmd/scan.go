@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/0xkowalskidev/gsq"
+	"github.com/0xkowalskidev/gjq"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ func NewScanCmd() *cobra.Command {
 			host := args[0]
 			ctx := context.Background()
 
-			opts := gsq.DiscoverOptions{
+			opts := gjq.DiscoverOptions{
 				Timeout: flagScanTimeout,
 				Players: flagScanPlayers,
 			}
@@ -35,10 +35,10 @@ func NewScanCmd() *cobra.Command {
 				if err != nil {
 					return err
 				}
-				opts.PortRanges = []gsq.PortRange{portRange}
+				opts.PortRanges = []gjq.PortRange{portRange}
 			}
 
-			servers, err := gsq.Discover(ctx, host, opts)
+			servers, err := gjq.Discover(ctx, host, opts)
 			if err != nil {
 				return err
 			}
@@ -59,14 +59,14 @@ func NewScanCmd() *cobra.Command {
 	return cmd
 }
 
-func parsePortRange(s string) (gsq.PortRange, error) {
+func parsePortRange(s string) (gjq.PortRange, error) {
 	var start, end uint16
 	n, err := fmt.Sscanf(s, "%d-%d", &start, &end)
 	if err != nil || n != 2 {
-		return gsq.PortRange{}, fmt.Errorf("invalid port range %q — expected format: start-end (e.g. 25000-26000)", s)
+		return gjq.PortRange{}, fmt.Errorf("invalid port range %q — expected format: start-end (e.g. 25000-26000)", s)
 	}
 	if start > end {
-		return gsq.PortRange{}, fmt.Errorf("invalid port range: start (%d) must be <= end (%d)", start, end)
+		return gjq.PortRange{}, fmt.Errorf("invalid port range: start (%d) must be <= end (%d)", start, end)
 	}
-	return gsq.PortRange{Start: start, End: end}, nil
+	return gjq.PortRange{Start: start, End: end}, nil
 }

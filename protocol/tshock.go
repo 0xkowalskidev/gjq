@@ -1,4 +1,4 @@
-package tshock
+package protocol
 
 import (
 	"context"
@@ -9,17 +9,15 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/0xkowalskidev/gsq/internal/protocol"
 )
 
 type tshockQuerier struct{}
 
 func init() {
-	protocol.Register("tshock", &tshockQuerier{})
+	Register("tshock", &tshockQuerier{})
 }
 
-type statusResponse struct {
+type tshockStatusResponse struct {
 	Name           string `json:"name"`
 	Port           int    `json:"port"`
 	PlayerCount    int    `json:"playercount"`
@@ -32,7 +30,7 @@ type statusResponse struct {
 	Uptime         string `json:"uptime"`
 }
 
-func (q *tshockQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
+func (q *tshockQuerier) Query(ctx context.Context, address string, port uint16, opts QueryOpts) (*ServerInfo, error) {
 	host := address
 	if opts.ResolvedIP != "" {
 		host = opts.ResolvedIP
@@ -60,19 +58,19 @@ func (q *tshockQuerier) Query(ctx context.Context, address string, port uint16, 
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("tshock HTTP %d: %s", resp.StatusCode, protocol.Truncate(string(body), 200))
+		return nil, fmt.Errorf("tshock HTTP %d: %s", resp.StatusCode, Truncate(string(body), 200))
 	}
 
-	var status statusResponse
+	var status tshockStatusResponse
 	if err := json.Unmarshal(body, &status); err != nil {
 		return nil, fmt.Errorf("tshock parse response: %w", err)
 	}
 
 	ping := time.Since(start)
-	return mapStatus(status, port, ping, opts.Players), nil
+	return mapTshockStatus(status, port, ping, opts.Players), nil
 }
 
-func mapStatus(status statusResponse, port uint16, ping time.Duration, players bool) *protocol.ServerInfo {
+func mapTshockStatus(status tshockStatusResponse, port uint16, ping time.Duration, players bool) *ServerInfo {
 	name := status.Name
 	if name == "" {
 		name = status.World
@@ -83,7 +81,7 @@ func mapStatus(status statusResponse, port uint16, ping time.Duration, players b
 		visibility = "private"
 	}
 
-	info := &protocol.ServerInfo{
+	info := &ServerInfo{
 		Protocol:   "tshock",
 		Name:       name,
 		Map:        status.World,
@@ -93,7 +91,7 @@ func mapStatus(status statusResponse, port uint16, ping time.Duration, players b
 		Visibility: visibility,
 		GamePort:   uint16(status.Port),
 		QueryPort:  port,
-		Ping:       protocol.Duration{Duration: ping},
+		Ping:       Duration{Duration: ping},
 	}
 
 	if status.TShockVersion != "" || status.Uptime != "" {
@@ -109,7 +107,7 @@ func mapStatus(status statusResponse, port uint16, ping time.Duration, players b
 	if players && status.Players != "" {
 		for _, name := range splitPlayers(status.Players) {
 			if name != "" {
-				info.PlayerList = append(info.PlayerList, protocol.PlayerInfo{Name: name})
+				info.PlayerList = append(info.PlayerList, PlayerInfo{Name: name})
 			}
 		}
 	}
@@ -136,4 +134,3 @@ func splitPlayers(s string) []string {
 	}
 	return players
 }
-

@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xkowalskidev/gsq"
+	"github.com/0xkowalskidev/gjq"
 )
 
 var sanitizeRe = regexp.MustCompile(strings.Join([]string{
@@ -30,7 +30,7 @@ func sanitize(s string) string {
 }
 
 // sanitizeInfo cleans display strings on a copy so library consumers get raw data.
-func sanitizeInfo(info *gsq.ServerInfo) *gsq.ServerInfo {
+func sanitizeInfo(info *gjq.ServerInfo) *gjq.ServerInfo {
 	out := *info
 	out.Name = sanitize(out.Name)
 	out.Game = sanitize(out.Game)
@@ -42,7 +42,7 @@ func sanitizeInfo(info *gsq.ServerInfo) *gsq.ServerInfo {
 	out.Environment = sanitize(out.Environment)
 	out.Visibility = sanitize(out.Visibility)
 	if len(out.PlayerList) > 0 {
-		out.PlayerList = make([]gsq.PlayerInfo, len(info.PlayerList))
+		out.PlayerList = make([]gjq.PlayerInfo, len(info.PlayerList))
 		copy(out.PlayerList, info.PlayerList)
 		for i := range out.PlayerList {
 			out.PlayerList[i].Name = sanitize(out.PlayerList[i].Name)
@@ -51,7 +51,7 @@ func sanitizeInfo(info *gsq.ServerInfo) *gsq.ServerInfo {
 	return &out
 }
 
-func printServerInfo(info *gsq.ServerInfo, asJSON bool) error {
+func printServerInfo(info *gjq.ServerInfo, asJSON bool) error {
 	if asJSON {
 		return printJSON(info)
 	}
@@ -59,7 +59,7 @@ func printServerInfo(info *gsq.ServerInfo, asJSON bool) error {
 	return nil
 }
 
-func printMultiServerInfo(servers []*gsq.ServerInfo, asJSON bool) error {
+func printMultiServerInfo(servers []*gjq.ServerInfo, asJSON bool) error {
 	if asJSON {
 		return printJSON(servers)
 	}
@@ -78,7 +78,7 @@ func printJSON(v any) error {
 	return enc.Encode(v)
 }
 
-func printTable(info *gsq.ServerInfo) {
+func printTable(info *gjq.ServerInfo) {
 	fmt.Printf("%-12s %s\n", "Name:", info.Name)
 	fmt.Printf("%-12s %s\n", "Address:", info.Address)
 	fmt.Printf("%-12s %d\n", "Game Port:", info.GamePort)

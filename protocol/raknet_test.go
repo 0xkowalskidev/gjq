@@ -1,4 +1,4 @@
-package raknet
+package protocol
 
 import (
 	"encoding/binary"
@@ -21,16 +21,16 @@ func buildPongPacket(status string) []byte {
 
 func TestParsePong(t *testing.T) {
 	tests := []struct {
-		name       string
-		status     string
-		wantName   string
-		wantGame   string
-		wantMap    string
-		wantMode   string
+		name        string
+		status      string
+		wantName    string
+		wantGame    string
+		wantMap     string
+		wantMode    string
 		wantPlayers int
-		wantMax    int
-		wantVer    string
-		wantErr    bool
+		wantMax     int
+		wantVer     string
+		wantErr     bool
 	}{
 		{
 			name:        "full bedrock response",

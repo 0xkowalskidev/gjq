@@ -1,4 +1,4 @@
-package minecraft
+package protocol
 
 import (
 	"bytes"
@@ -10,18 +10,16 @@ import (
 	"net"
 	"strings"
 	"time"
-
-	"github.com/0xkowalskidev/gsq/internal/protocol"
 )
 
-type MinecraftQuerier struct{}
+type minecraftQuerier struct{}
 
 func init() {
-	protocol.Register("minecraft", &MinecraftQuerier{})
+	Register("minecraft", &minecraftQuerier{})
 }
 
-// statusResponse is the JSON structure returned by the Minecraft server.
-type statusResponse struct {
+// mcStatusResponse is the JSON structure returned by the Minecraft server.
+type mcStatusResponse struct {
 	Description        interface{} `json:"description"`
 	Favicon            string      `json:"favicon"`
 	EnforcesSecureChat bool        `json:"enforcesSecureChat"`
@@ -58,7 +56,7 @@ type modInfoLegacy struct {
 	} `json:"modList"`
 }
 
-func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
+func (q *minecraftQuerier) Query(ctx context.Context, address string, port uint16, opts QueryOpts) (*ServerInfo, error) {
 	dialHost := address
 	if opts.ResolvedIP != "" {
 		dialHost = opts.ResolvedIP
@@ -89,13 +87,13 @@ func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint1
 		return nil, fmt.Errorf("status request: %w", err)
 	}
 
-	status, err := readStatusResponse(conn)
+	status, err := readMCStatusResponse(conn)
 	if err != nil {
 		return nil, fmt.Errorf("read status: %w", err)
 	}
 
-	info := &protocol.ServerInfo{
-		Ping: protocol.Duration{Duration: time.Since(start)},
+	info := &ServerInfo{
+		Ping:       Duration{Duration: time.Since(start)},
 		Protocol:   "minecraft",
 		Name:       extractDescription(status.Description),
 		Game:       "Minecraft",
@@ -108,7 +106,7 @@ func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint1
 
 	if opts.Players {
 		for _, p := range status.Players.Sample {
-			info.PlayerList = append(info.PlayerList, protocol.PlayerInfo{
+			info.PlayerList = append(info.PlayerList, PlayerInfo{
 				Name: p.Name,
 			})
 		}
@@ -117,11 +115,11 @@ func (q *MinecraftQuerier) Query(ctx context.Context, address string, port uint1
 	// Forge mods (two possible JSON formats)
 	if status.ForgeData != nil {
 		for _, m := range status.ForgeData.Mods {
-			info.Mods = append(info.Mods, protocol.ModInfo{ID: m.ModID, Version: m.Version})
+			info.Mods = append(info.Mods, ModInfo{ID: m.ModID, Version: m.Version})
 		}
 	} else if status.ModInfo != nil {
 		for _, m := range status.ModInfo.ModList {
-			info.Mods = append(info.Mods, protocol.ModInfo{ID: m.ModID, Version: m.Version})
+			info.Mods = append(info.Mods, ModInfo{ID: m.ModID, Version: m.Version})
 		}
 	}
 
@@ -165,7 +163,7 @@ func sendStatusRequest(conn net.Conn) error {
 	return writePacket(conn, []byte{0x00})
 }
 
-func readStatusResponse(conn net.Conn) (*statusResponse, error) {
+func readMCStatusResponse(conn net.Conn) (*mcStatusResponse, error) {
 	data, err := readPacket(conn)
 	if err != nil {
 		return nil, err
@@ -193,7 +191,7 @@ func readStatusResponse(conn net.Conn) (*statusResponse, error) {
 		return nil, fmt.Errorf("read json data: %w", err)
 	}
 
-	var status statusResponse
+	var status mcStatusResponse
 	if err := json.Unmarshal(jsonData, &status); err != nil {
 		return nil, fmt.Errorf("parse json: %w", err)
 	}

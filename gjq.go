@@ -1,4 +1,4 @@
-package gsq
+package gjq
 
 import (
 	"context"
@@ -7,16 +7,35 @@ import (
 	"math"
 	"net"
 	"sync"
+	"time"
 
-	"github.com/0xkowalskidev/gsq/internal/protocol"
-
-	// Register protocol implementations
-	_ "github.com/0xkowalskidev/gsq/internal/protocol/eos"
-	_ "github.com/0xkowalskidev/gsq/internal/protocol/minecraft"
-	_ "github.com/0xkowalskidev/gsq/internal/protocol/raknet"
-	_ "github.com/0xkowalskidev/gsq/internal/protocol/source"
-	_ "github.com/0xkowalskidev/gsq/internal/protocol/tshock"
+	"github.com/0xkowalskidev/gjq/protocol"
 )
+
+type Duration = protocol.Duration
+type ServerInfo = protocol.ServerInfo
+type PlayerInfo = protocol.PlayerInfo
+
+type QueryOptions struct {
+	Game            string
+	Timeout         time.Duration
+	Players         bool
+	Rules           bool
+	Direct          bool // treat port as the exact query port, skip port derivation
+	EOSClientID     string
+	EOSClientSecret string
+}
+
+type DiscoverOptions struct {
+	Timeout    time.Duration
+	PortRanges []PortRange
+	Players    bool
+}
+
+type PortRange struct {
+	Start uint16
+	End   uint16
+}
 
 type candidate struct {
 	port     uint16
@@ -46,7 +65,7 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 	if opts.Game != "" {
 		gc = LookupGame(opts.Game)
 		if gc == nil {
-			return nil, fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", opts.Game)
+			return nil, fmt.Errorf("unknown game %q — run 'gjq games' to see supported games", opts.Game)
 		}
 	}
 
@@ -351,7 +370,6 @@ func enrichResult(info *ServerInfo, gc *GameConfig) {
 		}
 	}
 }
-
 
 func resolveHost(ctx context.Context, address string) (string, error) {
 	if net.ParseIP(address) != nil {

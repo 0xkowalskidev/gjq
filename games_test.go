@@ -1,9 +1,9 @@
-package gsq
+package gjq
 
 import (
 	"testing"
 
-	"github.com/0xkowalskidev/gsq/internal/protocol"
+	"github.com/0xkowalskidev/gjq/protocol"
 )
 
 func TestLookupGame(t *testing.T) {

@@ -1,4 +1,4 @@
-package eos
+package protocol
 
 import (
 	"bytes"
@@ -12,8 +12,6 @@ import (
 	"net/url"
 	"strings"
 	"time"
-
-	"github.com/0xkowalskidev/gsq/internal/protocol"
 )
 
 const (
@@ -26,10 +24,10 @@ const (
 type eosQuerier struct{}
 
 func init() {
-	protocol.Register("eos", &eosQuerier{})
+	Register("eos", &eosQuerier{})
 }
 
-func (q *eosQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
+func (q *eosQuerier) Query(ctx context.Context, address string, port uint16, opts QueryOpts) (*ServerInfo, error) {
 	if opts.EOS == nil {
 		return nil, fmt.Errorf("eos: no credentials configured (use --game to select an EOS game)")
 	}
@@ -57,13 +55,13 @@ func (q *eosQuerier) Query(ctx context.Context, address string, port uint16, opt
 	info.Protocol = "eos"
 	info.GamePort = port
 	info.QueryPort = port
-	info.Ping = protocol.Duration{Duration: ping}
+	info.Ping = Duration{Duration: ping}
 
 	return info, nil
 }
 
 // authenticate obtains an access token via client_credentials or device ID flow.
-func authenticate(ctx context.Context, cfg *protocol.EOSConfig) (string, error) {
+func authenticate(ctx context.Context, cfg *EOSConfig) (string, error) {
 	basicAuth := base64.StdEncoding.EncodeToString([]byte(cfg.ClientID + ":" + cfg.ClientSecret))
 
 	if cfg.UseExternalAuth {
@@ -97,7 +95,7 @@ func authenticateExternal(ctx context.Context, basicAuth, deploymentID string) (
 		"grant_type":          {"external_auth"},
 		"external_auth_type":  {"deviceid_access_token"},
 		"external_auth_token": {deviceToken},
-		"nonce":               {"gsq"},
+		"nonce":               {"gjq"},
 		"deployment_id":       {deploymentID},
 		"display_name":        {"User"},
 	}
@@ -124,7 +122,7 @@ func postForToken(ctx context.Context, endpoint, basicAuth string, body url.Valu
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, protocol.Truncate(string(respBody), 200))
+		return "", fmt.Errorf("HTTP %d: %s", resp.StatusCode, Truncate(string(respBody), 200))
 	}
 
 	var result struct {
@@ -140,7 +138,7 @@ func postForToken(ctx context.Context, endpoint, basicAuth string, body url.Valu
 }
 
 // findSession queries the matchmaking API and finds the session matching address:port.
-func findSession(ctx context.Context, cfg *protocol.EOSConfig, token, address string, port uint16) (map[string]json.RawMessage, error) {
+func findSession(ctx context.Context, cfg *EOSConfig, token, address string, port uint16) (map[string]json.RawMessage, error) {
 	urlFmt := matchmakingURLFmt
 	if cfg.UseWildcard {
 		urlFmt = wildcardMatchURLFmt
@@ -184,7 +182,7 @@ func findSession(ctx context.Context, cfg *protocol.EOSConfig, token, address st
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, protocol.Truncate(string(respBody), 200))
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, Truncate(string(respBody), 200))
 	}
 
 	var envelope struct {
@@ -263,9 +261,9 @@ func sessionAttributes(session map[string]json.RawMessage) map[string]string {
 }
 
 // mapSession converts a raw EOS session into ServerInfo using the game's attribute map.
-func mapSession(session map[string]json.RawMessage, attrMap map[string]string) *protocol.ServerInfo {
+func mapSession(session map[string]json.RawMessage, attrMap map[string]string) *ServerInfo {
 	attrs := sessionAttributes(session)
-	info := &protocol.ServerInfo{}
+	info := &ServerInfo{}
 
 	// Map standard fields using game-specific attribute keys
 	if key, ok := attrMap["name"]; ok {
@@ -308,7 +306,7 @@ func mapSession(session map[string]json.RawMessage, attrMap map[string]string) *
 		if err := json.Unmarshal(raw, &playerIDs); err == nil {
 			for _, id := range playerIDs {
 				if id != "" {
-					info.PlayerList = append(info.PlayerList, protocol.PlayerInfo{Name: id})
+					info.PlayerList = append(info.PlayerList, PlayerInfo{Name: id})
 				}
 			}
 		}
@@ -341,4 +339,3 @@ func jsonInt(session map[string]json.RawMessage, keys ...string) int {
 	}
 	return jsonInt(nested, keys[1:]...)
 }
-

@@ -1,4 +1,4 @@
-package minecraft
+package protocol
 
 import (
 	"bytes"
@@ -122,7 +122,7 @@ func TestReadVarIntErrors(t *testing.T) {
 	})
 }
 
-func TestStatusResponseUnmarshal(t *testing.T) {
+func TestMCStatusResponseUnmarshal(t *testing.T) {
 	jsonStr := `{
 		"description": {"text": "A ", "extra": [{"text": "Minecraft Server"}]},
 		"players": {"max": 20, "online": 5, "sample": [{"name": "Steve", "id": "abc-123"}, {"name": "Alex", "id": "def-456"}]},
@@ -131,7 +131,7 @@ func TestStatusResponseUnmarshal(t *testing.T) {
 		"enforcesSecureChat": true
 	}`
 
-	var status statusResponse
+	var status mcStatusResponse
 	if err := json.Unmarshal([]byte(jsonStr), &status); err != nil {
 		t.Fatalf("unmarshal error: %v", err)
 	}
@@ -165,7 +165,7 @@ func TestStatusResponseUnmarshal(t *testing.T) {
 	}
 }
 
-func TestStatusResponseForgeMods(t *testing.T) {
+func TestMCStatusResponseForgeMods(t *testing.T) {
 	t.Run("forgeData FML2+", func(t *testing.T) {
 		jsonStr := `{
 			"description": "test",
@@ -173,7 +173,7 @@ func TestStatusResponseForgeMods(t *testing.T) {
 			"version": {"name": "1.20.1", "protocol": 763},
 			"forgeData": {"mods": [{"modId": "forge", "modmarker": "47.2.0"}, {"modId": "mymod", "modmarker": "1.0.0"}]}
 		}`
-		var status statusResponse
+		var status mcStatusResponse
 		if err := json.Unmarshal([]byte(jsonStr), &status); err != nil {
 			t.Fatalf("unmarshal error: %v", err)
 		}
@@ -198,7 +198,7 @@ func TestStatusResponseForgeMods(t *testing.T) {
 			"version": {"name": "1.12.2", "protocol": 340},
 			"modinfo": {"modList": [{"modid": "forge", "version": "14.23.5.2860"}, {"modid": "oldmod", "version": "2.0"}]}
 		}`
-		var status statusResponse
+		var status mcStatusResponse
 		if err := json.Unmarshal([]byte(jsonStr), &status); err != nil {
 			t.Fatalf("unmarshal error: %v", err)
 		}
@@ -219,7 +219,7 @@ func TestStatusResponseForgeMods(t *testing.T) {
 			"players": {"max": 20, "online": 0},
 			"version": {"name": "1.20.4", "protocol": 765}
 		}`
-		var status statusResponse
+		var status mcStatusResponse
 		if err := json.Unmarshal([]byte(jsonStr), &status); err != nil {
 			t.Fatalf("unmarshal error: %v", err)
 		}

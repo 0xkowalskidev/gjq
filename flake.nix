@@ -1,5 +1,5 @@
 {
-  description = "gsq - Gameserver Query Library & CLI";
+  description = "gjq - GameJanitor Query Library & CLI";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -17,15 +17,15 @@
         in
         {
           default = pkgs.buildGoModule {
-            pname = "gsq";
+            pname = "gjq";
             version = "0.1.0";
             src = ./.;
             vendorHash = "sha256-7K17JaXFsjf163g5PXCb5ng2gYdotnZ2IDKk8KFjNj0=";
-            subPackages = [ "cmd/gsq" ];
+            subPackages = [ "cmd/gjq" ];
 
             meta = {
-              description = "Gameserver Query CLI";
-              mainProgram = "gsq";
+              description = "GameJanitor Query CLI";
+              mainProgram = "gjq";
             };
           };
         });
@@ -43,8 +43,8 @@
             ];
 
             shellHook = ''
-              gsq() { go run ./cmd/gsq "$@"; }
-              export -f gsq
+              gjq() { go run ./cmd/gjq "$@"; }
+              export -f gjq
             '';
           };
         });

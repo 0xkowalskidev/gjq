@@ -1,4 +1,4 @@
-package source
+package protocol
 
 import (
 	"bytes"
@@ -10,8 +10,6 @@ import (
 	"net"
 	"sort"
 	"time"
-
-	"github.com/0xkowalskidev/gsq/internal/protocol"
 )
 
 const (
@@ -38,10 +36,10 @@ var a2sInfoPayload = append(
 type SourceQuerier struct{}
 
 func init() {
-	protocol.Register("source", &SourceQuerier{})
+	Register("source", &SourceQuerier{})
 }
 
-func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
+func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16, opts QueryOpts) (*ServerInfo, error) {
 	dialHost := address
 	if opts.ResolvedIP != "" {
 		dialHost = opts.ResolvedIP
@@ -66,7 +64,7 @@ func (q *SourceQuerier) Query(ctx context.Context, address string, port uint16, 
 		return nil, fmt.Errorf("a2s_info %s: %w", addr, err)
 	}
 
-	info.Ping = protocol.Duration{Duration: ping}
+	info.Ping = Duration{Duration: ping}
 	info.GamePort = port
 	info.QueryPort = port
 
@@ -187,7 +185,7 @@ func readSplitResponse(conn net.Conn, firstPacket []byte) ([]byte, error) {
 	return data, nil
 }
 
-func queryInfo(conn net.Conn) (*protocol.ServerInfo, time.Duration, error) {
+func queryInfo(conn net.Conn) (*ServerInfo, time.Duration, error) {
 	start := time.Now()
 	if _, err := conn.Write(a2sInfoPayload); err != nil {
 		return nil, 0, fmt.Errorf("send request: %w", err)
@@ -232,29 +230,29 @@ func queryInfo(conn net.Conn) (*protocol.ServerInfo, time.Duration, error) {
 	return info, ping, err
 }
 
-func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
+func parseInfoResponse(data []byte) (*ServerInfo, error) {
 	r := bytes.NewReader(data)
 
 	if _, err := r.ReadByte(); err != nil {
 		return nil, fmt.Errorf("read protocol version: %w", err)
 	}
 
-	name, err := readString(r)
+	name, err := readNullTermString(r)
 	if err != nil {
 		return nil, fmt.Errorf("read server name: %w", err)
 	}
 
-	mapName, err := readString(r)
+	mapName, err := readNullTermString(r)
 	if err != nil {
 		return nil, fmt.Errorf("read map: %w", err)
 	}
 
-	folder, err := readString(r)
+	folder, err := readNullTermString(r)
 	if err != nil {
 		return nil, fmt.Errorf("read folder: %w", err)
 	}
 
-	game, err := readString(r)
+	game, err := readNullTermString(r)
 	if err != nil {
 		return nil, fmt.Errorf("read game: %w", err)
 	}
@@ -274,9 +272,9 @@ func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
 		return nil, fmt.Errorf("read server fields: %w", err)
 	}
 
-	version, _ := readString(r)
+	version, _ := readNullTermString(r)
 
-	info := &protocol.ServerInfo{
+	info := &ServerInfo{
 		Protocol:    "source",
 		Name:        name,
 		Map:         mapName,
@@ -309,10 +307,10 @@ func parseInfoResponse(data []byte) (*protocol.ServerInfo, error) {
 		}
 		if edf&0x40 != 0 {
 			r.Seek(2, io.SeekCurrent) // skip spectator port (uint16)
-			readString(r)             // skip spectator name
+			readNullTermString(r)      // skip spectator name
 		}
 		if edf&0x20 != 0 {
-			info.Keywords, _ = readString(r)
+			info.Keywords, _ = readNullTermString(r)
 		}
 		if edf&0x01 != 0 {
 			var gameID uint64
@@ -366,7 +364,7 @@ func challengeQuery(conn net.Conn, requestByte, responseByte byte) ([]byte, erro
 	return data[1:], nil
 }
 
-func queryPlayers(conn net.Conn) ([]protocol.PlayerInfo, error) {
+func queryPlayers(conn net.Conn) ([]PlayerInfo, error) {
 	data, err := challengeQuery(conn, a2sPlayerRequest, a2sPlayerResponse)
 	if err != nil {
 		return nil, fmt.Errorf("a2s_player: %w", err)
@@ -374,7 +372,7 @@ func queryPlayers(conn net.Conn) ([]protocol.PlayerInfo, error) {
 	return parsePlayerResponse(data)
 }
 
-func parsePlayerResponse(data []byte) ([]protocol.PlayerInfo, error) {
+func parsePlayerResponse(data []byte) ([]PlayerInfo, error) {
 	r := bytes.NewReader(data)
 
 	var playerCount uint8
@@ -382,7 +380,7 @@ func parsePlayerResponse(data []byte) ([]protocol.PlayerInfo, error) {
 		return nil, fmt.Errorf("read player count: %w", err)
 	}
 
-	players := make([]protocol.PlayerInfo, 0, playerCount)
+	players := make([]PlayerInfo, 0, playerCount)
 
 	for i := 0; i < int(playerCount); i++ {
 		if _, err := r.ReadByte(); err != nil { // index byte (unused but part of wire format)
@@ -390,7 +388,7 @@ func parsePlayerResponse(data []byte) ([]protocol.PlayerInfo, error) {
 			break
 		}
 
-		name, err := readString(r)
+		name, err := readNullTermString(r)
 		if err != nil {
 			slog.Warn("a2s_player: truncated response", "expected", playerCount, "parsed", i)
 			break
@@ -408,10 +406,10 @@ func parsePlayerResponse(data []byte) ([]protocol.PlayerInfo, error) {
 			break
 		}
 
-		players = append(players, protocol.PlayerInfo{
+		players = append(players, PlayerInfo{
 			Name:     name,
 			Score:    int(score),
-			Duration: protocol.Duration{Duration: time.Duration(float64(time.Second) * float64(duration))},
+			Duration: Duration{Duration: time.Duration(float64(time.Second) * float64(duration))},
 		})
 	}
 
@@ -437,12 +435,12 @@ func parseRulesResponse(data []byte) (map[string]string, error) {
 	rules := make(map[string]string, ruleCount)
 
 	for i := 0; i < int(ruleCount); i++ {
-		name, err := readString(r)
+		name, err := readNullTermString(r)
 		if err != nil {
 			slog.Warn("a2s_rules: truncated response", "expected", ruleCount, "parsed", i)
 			break
 		}
-		value, err := readString(r)
+		value, err := readNullTermString(r)
 		if err != nil {
 			slog.Warn("a2s_rules: truncated response", "expected", ruleCount, "parsed", i)
 			break
@@ -453,7 +451,8 @@ func parseRulesResponse(data []byte) (map[string]string, error) {
 	return rules, nil
 }
 
-func readString(r *bytes.Reader) (string, error) {
+// readNullTermString reads a null-terminated string from a bytes.Reader.
+func readNullTermString(r *bytes.Reader) (string, error) {
 	var result []byte
 	for {
 		b, err := r.ReadByte()

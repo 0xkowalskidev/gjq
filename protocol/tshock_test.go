@@ -1,4 +1,4 @@
-package tshock
+package protocol
 
 import (
 	"testing"
@@ -36,9 +36,9 @@ func TestSplitPlayers(t *testing.T) {
 	}
 }
 
-func TestMapStatus(t *testing.T) {
+func TestMapTshockStatus(t *testing.T) {
 	t.Run("full status", func(t *testing.T) {
-		status := statusResponse{
+		status := tshockStatusResponse{
 			Name:           "My Terraria Server",
 			Port:           7777,
 			PlayerCount:    5,
@@ -51,7 +51,7 @@ func TestMapStatus(t *testing.T) {
 			Uptime:         "1d 2h 30m",
 		}
 
-		info := mapStatus(status, 7878, 10*time.Millisecond, true)
+		info := mapTshockStatus(status, 7878, 10*time.Millisecond, true)
 
 		if info.Name != "My Terraria Server" {
 			t.Errorf("Name = %q, want %q", info.Name, "My Terraria Server")
@@ -95,40 +95,40 @@ func TestMapStatus(t *testing.T) {
 	})
 
 	t.Run("empty name falls back to world", func(t *testing.T) {
-		status := statusResponse{
+		status := tshockStatusResponse{
 			Name:  "",
 			World: "FallbackWorld",
 		}
-		info := mapStatus(status, 7878, 0, false)
+		info := mapTshockStatus(status, 7878, 0, false)
 		if info.Name != "FallbackWorld" {
 			t.Errorf("Name = %q, want %q (fallback to World)", info.Name, "FallbackWorld")
 		}
 	})
 
 	t.Run("password protected", func(t *testing.T) {
-		status := statusResponse{
+		status := tshockStatusResponse{
 			Name:           "Private Server",
 			ServerPassword: true,
 		}
-		info := mapStatus(status, 7878, 0, false)
+		info := mapTshockStatus(status, 7878, 0, false)
 		if info.Visibility != "private" {
 			t.Errorf("Visibility = %q, want %q", info.Visibility, "private")
 		}
 	})
 
 	t.Run("players not fetched when disabled", func(t *testing.T) {
-		status := statusResponse{
+		status := tshockStatusResponse{
 			Players: "Alice, Bob",
 		}
-		info := mapStatus(status, 7878, 0, false)
+		info := mapTshockStatus(status, 7878, 0, false)
 		if len(info.PlayerList) != 0 {
 			t.Errorf("PlayerList len = %d, want 0 (players disabled)", len(info.PlayerList))
 		}
 	})
 
 	t.Run("no extra when versions empty", func(t *testing.T) {
-		status := statusResponse{Name: "S"}
-		info := mapStatus(status, 7878, 0, false)
+		status := tshockStatusResponse{Name: "S"}
+		info := mapTshockStatus(status, 7878, 0, false)
 		if info.Extra != nil {
 			t.Errorf("Extra = %v, want nil when no tshock version or uptime", info.Extra)
 		}

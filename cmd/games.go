@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/0xkowalskidev/gsq"
+	"github.com/0xkowalskidev/gjq"
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +13,7 @@ func NewGamesCmd() *cobra.Command {
 		Use:   "games",
 		Short: "List supported games",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			games := gsq.SupportedGames()
+			games := gjq.SupportedGames()
 
 			// Build combined game column: "slug (alias1, alias2)" or just "slug"
 			gameLabels := make([]string, len(games))

@@ -1,4 +1,4 @@
-package gsq
+package gjq
 
 import (
 	"testing"

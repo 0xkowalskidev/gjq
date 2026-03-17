@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/0xkowalskidev/gsq"
+	"github.com/0xkowalskidev/gjq"
 	"github.com/spf13/cobra"
 )
 
@@ -27,9 +27,9 @@ var (
 
 func NewRootCmd() *cobra.Command {
 	rootCmd := &cobra.Command{
-		Use:   "gsq [flags] host:port",
+		Use:   "gjq [flags] host:port",
 		Short: "Query game servers",
-		Long:  "gsq queries game servers using various protocols (Source, Minecraft, etc.)",
+		Long:  "gjq queries game servers using various protocols (Source, Minecraft, etc.)",
 		Args: cobra.MaximumNArgs(1),
 		PersistentPreRun: func(cmd *cobra.Command, args []string) {
 			level := slog.LevelInfo
@@ -49,9 +49,9 @@ func NewRootCmd() *cobra.Command {
 				if flagGame == "" {
 					return fmt.Errorf("no port specified and no --game flag set — use host:port or --game to infer default port")
 				}
-				gc := gsq.LookupGame(flagGame)
+				gc := gjq.LookupGame(flagGame)
 				if gc == nil {
-					return fmt.Errorf("unknown game %q — run 'gsq games' to see supported games", flagGame)
+					return fmt.Errorf("unknown game %q — run 'gjq games' to see supported games", flagGame)
 				}
 				host = args[0]
 				portStr = strconv.FormatUint(uint64(gc.DefaultQueryPort), 10)
@@ -65,14 +65,14 @@ func NewRootCmd() *cobra.Command {
 			ctx := context.Background()
 			eosClientID := flagEOSClientID
 			if eosClientID == "" {
-				eosClientID = os.Getenv("GSQ_EOS_CLIENT_ID")
+				eosClientID = os.Getenv("GJQ_EOS_CLIENT_ID")
 			}
 			eosClientSecret := flagEOSClientSecret
 			if eosClientSecret == "" {
-				eosClientSecret = os.Getenv("GSQ_EOS_CLIENT_SECRET")
+				eosClientSecret = os.Getenv("GJQ_EOS_CLIENT_SECRET")
 			}
 
-			opts := gsq.QueryOptions{
+			opts := gjq.QueryOptions{
 				Game:            flagGame,
 				Timeout:         flagTimeout,
 				Players:         flagPlayers,
@@ -82,7 +82,7 @@ func NewRootCmd() *cobra.Command {
 				EOSClientSecret: eosClientSecret,
 			}
 
-			info, err := gsq.Query(ctx, host, uint16(port), opts)
+			info, err := gjq.Query(ctx, host, uint16(port), opts)
 			if err != nil {
 				return err
 			}

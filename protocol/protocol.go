@@ -85,20 +85,6 @@ type Querier interface {
 	Query(ctx context.Context, address string, port uint16, opts QueryOpts) (*ServerInfo, error)
 }
 
-var registry = make(map[string]Querier)
-
-func Register(name string, q Querier) {
-	registry[name] = q
-}
-
-func Get(name string) (Querier, error) {
-	q, ok := registry[name]
-	if !ok {
-		return nil, fmt.Errorf("protocol %q not registered", name)
-	}
-	return q, nil
-}
-
 // Truncate returns s truncated to n characters with "..." appended if needed.
 func Truncate(s string, n int) string {
 	if len(s) <= n {
@@ -107,9 +93,23 @@ func Truncate(s string, n int) string {
 	return s[:n] + "..."
 }
 
+var queriers = map[string]Querier{}
+
+func Register(name string, q Querier) {
+	queriers[name] = q
+}
+
+func Get(name string) (Querier, error) {
+	q, ok := queriers[name]
+	if !ok {
+		return nil, fmt.Errorf("protocol %q not registered", name)
+	}
+	return q, nil
+}
+
 func All() map[string]Querier {
-	cp := make(map[string]Querier, len(registry))
-	for k, v := range registry {
+	cp := make(map[string]Querier, len(queriers))
+	for k, v := range queriers {
 		cp[k] = v
 	}
 	return cp

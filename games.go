@@ -1,6 +1,6 @@
-package gsq
+package gjq
 
-import "github.com/0xkowalskidev/gsq/internal/protocol"
+import "github.com/0xkowalskidev/gjq/protocol"
 
 type GameConfig struct {
 	Slug             string
@@ -12,7 +12,7 @@ type GameConfig struct {
 	Protocol         string
 	ProtocolConfig   any      // protocol-specific config (e.g. *protocol.EOSConfig), nil for most games
 	Supports         []string // optional features: "players", "rules", "keywords", "mods"
-	Notes            string   // limitations/quirks shown in `gsq games` and JSON output
+	Notes            string   // limitations/quirks shown in `gjq games` and JSON output
 }
 
 func (g *GameConfig) HasSupport(feature string) bool {
@@ -26,9 +26,9 @@ func (g *GameConfig) HasSupport(feature string) bool {
 
 // Shorthand for common support sets to reduce noise in the registry.
 var (
-	sourceSupports     = []string{"players", "rules", "keywords"}
-	sourceNoRules      = []string{"players", "keywords"}
-	eosSupports        = []string{"players"}
+	sourceSupports = []string{"players", "rules", "keywords"}
+	sourceNoRules  = []string{"players", "keywords"}
+	eosSupports    = []string{"players"}
 )
 
 var gameRegistry = []GameConfig{

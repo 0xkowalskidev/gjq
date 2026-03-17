@@ -1,4 +1,4 @@
-package raknet
+package protocol
 
 import (
 	"context"
@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/0xkowalskidev/gsq/internal/protocol"
 )
 
 var raknetMagic = []byte{
@@ -21,10 +19,10 @@ var raknetMagic = []byte{
 type raknetQuerier struct{}
 
 func init() {
-	protocol.Register("raknet", &raknetQuerier{})
+	Register("raknet", &raknetQuerier{})
 }
 
-func (q *raknetQuerier) Query(ctx context.Context, address string, port uint16, opts protocol.QueryOpts) (*protocol.ServerInfo, error) {
+func (q *raknetQuerier) Query(ctx context.Context, address string, port uint16, opts QueryOpts) (*ServerInfo, error) {
 	host := address
 	if opts.ResolvedIP != "" {
 		host = opts.ResolvedIP
@@ -67,7 +65,7 @@ func (q *raknetQuerier) Query(ctx context.Context, address string, port uint16, 
 	return parsePong(buf, address, port, elapsed)
 }
 
-func parsePong(buf []byte, address string, port uint16, ping time.Duration) (*protocol.ServerInfo, error) {
+func parsePong(buf []byte, address string, port uint16, ping time.Duration) (*ServerInfo, error) {
 	// Minimum pong: 1 (id) + 8 (time) + 8 (guid) + 16 (magic) + 2 (strlen) = 35
 	if len(buf) < 35 {
 		return nil, fmt.Errorf("pong too short: %d bytes", len(buf))
@@ -92,13 +90,13 @@ func parsePong(buf []byte, address string, port uint16, ping time.Duration) (*pr
 	players, _ := strconv.Atoi(fields[4])
 	maxPlayers, _ := strconv.Atoi(fields[5])
 
-	info := &protocol.ServerInfo{
+	info := &ServerInfo{
 		Protocol:   "raknet",
 		Name:       fields[1],
 		Players:    players,
 		MaxPlayers: maxPlayers,
 		Version:    fields[3],
-		Ping:       protocol.Duration{Duration: ping},
+		Ping:       Duration{Duration: ping},
 		GamePort:   port,
 		QueryPort:  port,
 		Extra:      make(map[string]any),
