@@ -15,6 +15,7 @@ import (
 
 var (
 	flagGame            string
+	flagProtocol        string
 	flagJSON            bool
 	flagTimeout         time.Duration
 	flagDebug           bool
@@ -74,6 +75,7 @@ func NewRootCmd() *cobra.Command {
 
 			opts := gjq.QueryOptions{
 				Game:            flagGame,
+				Protocol:        flagProtocol,
 				Timeout:         flagTimeout,
 				Players:         flagPlayers,
 				Rules:           flagRules,
@@ -93,6 +95,7 @@ func NewRootCmd() *cobra.Command {
 	}
 
 	rootCmd.Flags().StringVar(&flagGame, "game", "", "game slug to skip auto-detection (e.g. cs2, minecraft)")
+	rootCmd.Flags().StringVar(&flagProtocol, "protocol", "", "force a specific protocol (e.g. source, minecraft, raknet, tshock)")
 	rootCmd.PersistentFlags().BoolVar(&flagJSON, "json", false, "output as JSON")
 	rootCmd.Flags().DurationVar(&flagTimeout, "timeout", 5*time.Second, "query timeout")
 	rootCmd.Flags().BoolVar(&flagPlayers, "players", false, "fetch player list")

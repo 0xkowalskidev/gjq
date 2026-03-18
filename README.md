@@ -18,6 +18,7 @@ gjq 192.168.1.100:28015                      # auto-detect with port derivation
 gjq --direct 192.168.1.100:28017             # skip port derivation, query exact port
 gjq --players --game ark 192.168.1.100:27015 # include player list
 gjq --rules --game tf2 192.168.1.100:27015   # include server rules/cvars
+gjq --protocol source 192.168.1.100:28017    # force protocol, expects query port
 gjq --json --game minecraft play.hypixel.net # JSON output
 gjq games                                    # list supported games, ports, and capabilities
 gjq scan 192.168.1.100                       # find servers on known query ports
