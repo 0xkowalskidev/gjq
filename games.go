@@ -126,6 +126,19 @@ var gameRegistry = []GameConfig{
 	{Slug: "pixark", Name: "PixARK", Aliases: []string{}, AppID: 593600, DefaultGamePort: 27015, DefaultQueryPort: 27016, Protocol: "source", Supports: sourceSupports},
 	{Slug: "battalion-1944", Name: "Battalion 1944", Aliases: []string{"battalion"}, AppID: 489940, DefaultGamePort: 7777, DefaultQueryPort: 7780, Protocol: "source", Supports: sourceSupports},
 	{Slug: "starbound", Name: "Starbound", Aliases: []string{}, AppID: 211820, DefaultGamePort: 21025, DefaultQueryPort: 21025, Protocol: "source", Supports: sourceSupports},
+	{Slug: "left-4-dead-2", Name: "Left 4 Dead 2", Aliases: []string{"l4d2"}, AppID: 550, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
+	{Slug: "left-4-dead", Name: "Left 4 Dead", Aliases: []string{"l4d"}, AppID: 500, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
+	{Slug: "no-more-room-in-hell", Name: "No More Room in Hell", Aliases: []string{"nmrih"}, AppID: 224260, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
+	{Slug: "day-of-infamy", Name: "Day of Infamy", Aliases: []string{"doi"}, AppID: 447820, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
+	{Slug: "natural-selection-2", Name: "Natural Selection 2", Aliases: []string{"ns2"}, AppID: 4920, DefaultGamePort: 27015, DefaultQueryPort: 27016, Protocol: "source", Supports: sourceSupports},
+	{Slug: "black-mesa", Name: "Black Mesa", Aliases: []string{"bm", "bms"}, AppID: 362890, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
+	{Slug: "holdfast", Name: "Holdfast: Nations At War", Aliases: []string{"holdfast-naw"}, AppID: 589290, DefaultGamePort: 20100, DefaultQueryPort: 27000, Protocol: "source", Supports: sourceSupports},
+	{Slug: "miscreated", Name: "Miscreated", Aliases: []string{}, AppID: 299740, DefaultGamePort: 64090, DefaultQueryPort: 64092, Protocol: "source", Supports: sourceSupports},
+	{Slug: "empyrion", Name: "Empyrion: Galactic Survival", Aliases: []string{"egs"}, AppID: 383120, DefaultGamePort: 30000, DefaultQueryPort: 30001, Protocol: "source", Supports: sourceSupports},
+	{Slug: "the-forest", Name: "The Forest", Aliases: []string{"forest"}, AppID: 242760, DefaultGamePort: 27015, DefaultQueryPort: 27016, Protocol: "source", Supports: sourceSupports},
+	{Slug: "hurtworld", Name: "Hurtworld", Aliases: []string{}, AppID: 393420, DefaultGamePort: 12871, DefaultQueryPort: 12881, Protocol: "source", Supports: sourceSupports},
+	{Slug: "sons-of-the-forest", Name: "Sons of the Forest", Aliases: []string{"sotf"}, AppID: 1326470, DefaultGamePort: 8766, DefaultQueryPort: 27016, Protocol: "source", Supports: sourceSupports},
+	{Slug: "arma-reforger", Name: "Arma Reforger", Aliases: []string{"reforger"}, AppID: 1874880, DefaultGamePort: 2001, DefaultQueryPort: 17777, Protocol: "source", Supports: sourceSupports, Notes: "A2S must be enabled in server config (disabled by default)."},
 }
 
 // Port indexes for fast lookup — built once at init.
