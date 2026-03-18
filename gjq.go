@@ -18,6 +18,7 @@ type PlayerInfo = protocol.PlayerInfo
 
 type QueryOptions struct {
 	Game            string
+	Protocol        string
 	Timeout         time.Duration
 	Players         bool
 	Rules           bool
@@ -59,6 +60,12 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		return nil, fmt.Errorf("resolve %s: %w", address, err)
 	}
 
+	if opts.Protocol != "" {
+		if _, err := protocol.Get(opts.Protocol); err != nil {
+			return nil, fmt.Errorf("unknown protocol %q", opts.Protocol)
+		}
+	}
+
 	queryOpts := protocol.QueryOpts{Players: opts.Players, Rules: opts.Rules, ResolvedIP: resolvedIP}
 
 	var gc *GameConfig
@@ -89,7 +96,7 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		}
 	}
 
-	candidates := buildCandidates(port, gc, opts.Direct)
+	candidates := buildCandidates(port, gc, opts.Direct, opts.Protocol)
 	for _, c := range candidates {
 		slog.Debug("candidate", "port", c.port, "protocol", c.protocol, "priority", c.priority)
 	}
@@ -124,7 +131,12 @@ func nonEOSProtocols() []string {
 }
 
 // buildCandidates generates prioritized (port, protocol) pairs to try concurrently.
-func buildCandidates(port uint16, gc *GameConfig, direct bool) []candidate {
+func buildCandidates(port uint16, gc *GameConfig, direct bool, proto string) []candidate {
+	// --protocol: user specifies exact protocol and query port
+	if proto != "" {
+		return []candidate{{port: port, protocol: proto, priority: 0}}
+	}
+
 	// --direct: user guarantees this is the query port
 	if direct {
 		if gc != nil {
@@ -310,7 +322,7 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 			defer wg.Done()
 			for port := range portCh {
 				probeCtx, probeCancel := context.WithTimeout(ctx, opts.Timeout)
-				info, err := raceQueryPriority(probeCtx, address, buildCandidates(port, nil, true), queryOpts)
+				info, err := raceQueryPriority(probeCtx, address, buildCandidates(port, nil, true, ""), queryOpts)
 				probeCancel()
 				if err != nil {
 					continue

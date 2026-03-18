@@ -15,7 +15,7 @@ func TestBuildCandidates(t *testing.T) {
 	}
 
 	t.Run("direct with game", func(t *testing.T) {
-		cs := buildCandidates(12345, rust, true)
+		cs := buildCandidates(12345, rust, true, "")
 		if len(cs) != 1 {
 			t.Fatalf("got %d candidates, want 1", len(cs))
 		}
@@ -31,7 +31,7 @@ func TestBuildCandidates(t *testing.T) {
 	})
 
 	t.Run("direct without game", func(t *testing.T) {
-		cs := buildCandidates(27015, nil, true)
+		cs := buildCandidates(27015, nil, true, "")
 		if len(cs) == 0 {
 			t.Fatal("got 0 candidates, want at least 1")
 		}
@@ -53,7 +53,7 @@ func TestBuildCandidates(t *testing.T) {
 	})
 
 	t.Run("game with default query port", func(t *testing.T) {
-		cs := buildCandidates(rust.DefaultQueryPort, rust, false)
+		cs := buildCandidates(rust.DefaultQueryPort, rust, false, "")
 		if len(cs) != 1 {
 			t.Fatalf("got %d candidates, want 1", len(cs))
 		}
@@ -63,7 +63,7 @@ func TestBuildCandidates(t *testing.T) {
 	})
 
 	t.Run("game with game port differs from query port", func(t *testing.T) {
-		cs := buildCandidates(rust.DefaultGamePort, rust, false)
+		cs := buildCandidates(rust.DefaultGamePort, rust, false, "")
 		if len(cs) < 2 {
 			t.Fatalf("got %d candidates, want at least 2", len(cs))
 		}
@@ -74,14 +74,14 @@ func TestBuildCandidates(t *testing.T) {
 	})
 
 	t.Run("game with same game and query port", func(t *testing.T) {
-		cs := buildCandidates(mc.DefaultQueryPort, mc, false)
+		cs := buildCandidates(mc.DefaultQueryPort, mc, false, "")
 		if len(cs) != 1 {
 			t.Fatalf("got %d candidates, want 1", len(cs))
 		}
 	})
 
 	t.Run("auto-detect includes user port", func(t *testing.T) {
-		cs := buildCandidates(27015, nil, false)
+		cs := buildCandidates(27015, nil, false, "")
 		hasUserPort := false
 		for _, c := range cs {
 			if c.port == 27015 && c.priority == 0 {
