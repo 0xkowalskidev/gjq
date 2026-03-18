@@ -30,7 +30,7 @@ Not all games support every flag — `gjq games` shows what each game supports. 
 
 ### Ports
 
-The **game port** is always the port you provided — the port players connect to. The **query port** is the port that responded to the protocol query. These may differ when gjq derives the query port from a game port (e.g. `--game rust 192.168.1.100:28015` queries on `28017`). gjq does not guess the game port from the query port, as containerized setups make offset-based inference unreliable.
+The **query port** is always accurate — it's the port that actually responded. The **game port** may not be — most protocols report it, but containerized servers (Docker, k8s) often expose different ports than the server thinks it's running on. gjq shows the port you provided rather than the server-reported value, but even that is only as correct as your input and any port derivation gjq applied.
 
 ## Library
 
@@ -40,12 +40,13 @@ import "github.com/0xkowalskidev/gjq"
 server, err := gjq.Query(ctx, "play.hypixel.net", 25565, gjq.QueryOptions{Game: "minecraft"})
 server, err := gjq.Query(ctx, "192.168.1.100", 27015, gjq.QueryOptions{Game: "tf2", Players: true, Rules: true})
 server, err := gjq.Query(ctx, "192.168.1.100", 28017, gjq.QueryOptions{Game: "rust", Direct: true})
+server, err := gjq.Query(ctx, "192.168.1.100", 28017, gjq.QueryOptions{Protocol: "source"})
 servers, err := gjq.Discover(ctx, "192.168.1.100", gjq.DiscoverOptions{})
 ```
 
 ### Scanning
 
-`gjq scan` is designed for querying your own hosts — e.g. finding what game servers are running on a machine you control. Only scan hosts you own or have permission to probe.
+`gjq scan` / `gjq.Discover` probes ports to find game servers on a host. Primarily intended for localhost — results over the network may be unreliable with large port ranges.
 
 ## EOS (Epic Online Services)
 

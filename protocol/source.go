@@ -299,7 +299,10 @@ func parseInfoResponse(data []byte) (*ServerInfo, error) {
 	// Parse Extra Data Flag (EDF) fields in spec order
 	if edf, err := r.ReadByte(); err == nil {
 		if edf&0x80 != 0 {
-			r.Seek(2, io.SeekCurrent) // skip EDF game port — unreliable in containerized setups
+			var edfPort uint16
+			if err := binary.Read(r, binary.LittleEndian, &edfPort); err == nil {
+				info.ReportedGamePort = edfPort
+			}
 		}
 		if edf&0x10 != 0 {
 			var steamID uint64

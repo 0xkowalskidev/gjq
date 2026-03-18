@@ -89,8 +89,9 @@ func mapTshockStatus(status tshockStatusResponse, port uint16, ping time.Duratio
 		MaxPlayers: status.MaxPlayers,
 		Version:    status.ServerVersion,
 		Visibility: visibility,
-		GamePort:   uint16(status.Port),
-		QueryPort:  port,
+		GamePort:         uint16(status.Port),
+		ReportedGamePort: uint16(status.Port),
+		QueryPort:        port,
 		Ping:       Duration{Duration: ping},
 	}
 

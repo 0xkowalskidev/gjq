@@ -123,6 +123,7 @@ func parsePong(buf []byte, address string, port uint16, ping time.Duration) (*Se
 	if len(fields) > 10 {
 		if p, err := strconv.Atoi(fields[10]); err == nil && p > 0 && p <= 65535 {
 			info.GamePort = uint16(p)
+			info.ReportedGamePort = uint16(p)
 		}
 	}
 

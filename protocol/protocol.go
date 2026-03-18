@@ -51,8 +51,9 @@ type ServerInfo struct {
 	AppID       uint32       `json:"appId,omitempty"`
 	Ping        Duration     `json:"ping"`
 	Address     string       `json:"address"`
-	GamePort    uint16       `json:"gamePort"`
-	QueryPort   uint16       `json:"queryPort"`
+	GamePort         uint16       `json:"gamePort"`
+	ReportedGamePort uint16       `json:"reportedGamePort,omitempty"`
+	QueryPort        uint16       `json:"queryPort"`
 	PlayerList  []PlayerInfo `json:"playerList,omitempty"`
 	Rules       map[string]string `json:"rules,omitempty"`
 	Mods        []ModInfo         `json:"mods,omitempty"`
