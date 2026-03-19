@@ -43,6 +43,7 @@ var gameRegistry = []GameConfig{
 	{Slug: "counter-strike-source", Name: "Counter-Strike: Source", Aliases: []string{"css"}, AppID: 240, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
 	{Slug: "counter-strike", Name: "Counter-Strike 1.6", Aliases: []string{"cs16", "cs"}, AppID: 10, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
 	{Slug: "rust", Name: "Rust", Aliases: []string{}, AppID: 252490, DefaultGamePort: 28015, DefaultQueryPort: 28017, Protocol: "source", Supports: sourceSupports},
+	{Slug: "fivem", Name: "FiveM (GTA V)", Aliases: []string{"gta5"}, DefaultGamePort: 30120, DefaultQueryPort: 30120, Protocol: "fivem", Supports: []string{"players"}, Notes: "Player list may be disabled by server config"},
 	{
 		Slug: "palworld", Name: "Palworld", Aliases: []string{"pw"},
 		DefaultGamePort: 8211, DefaultQueryPort: 8211, Protocol: "eos",

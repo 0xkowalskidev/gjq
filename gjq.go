@@ -118,12 +118,14 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 	return info, nil
 }
 
-// nonEOSProtocols returns all registered protocol names except EOS,
-// which requires game-specific credentials and can't be used for auto-detection.
-func nonEOSProtocols() []string {
+// autoDetectProtocols returns protocols suitable for blind probing.
+// EOS requires game-specific credentials, fivem and tshock are HTTP APIs
+// that shouldn't be used for auto-detection on unknown ports.
+func autoDetectProtocols() []string {
+	skip := map[string]bool{"eos": true, "fivem": true, "tshock": true}
 	var names []string
 	for name := range protocol.All() {
-		if name != "eos" {
+		if !skip[name] {
 			names = append(names, name)
 		}
 	}
@@ -154,9 +156,9 @@ func buildCandidates(port uint16, gc *GameConfig, direct bool, proto string) []c
 	return buildCandidatesAutoDetect(port)
 }
 
-// candidatesForPort returns a candidate per non-EOS protocol for the given port and priority.
+// candidatesForPort returns a candidate per auto-detect protocol for the given port and priority.
 func candidatesForPort(port uint16, priority int) []candidate {
-	protos := nonEOSProtocols()
+	protos := autoDetectProtocols()
 	candidates := make([]candidate, len(protos))
 	for i, name := range protos {
 		candidates[i] = candidate{port: port, protocol: name, priority: priority}
