@@ -15,7 +15,7 @@ var sanitizeRe = regexp.MustCompile(strings.Join([]string{
 	`§[0-9a-fk-or]`,  // Minecraft color/formatting codes
 	`\x1b\[[0-9;]*m`, // ANSI escape sequences
 	`<[^>]+>`,         // HTML/Unity rich text tags
-	`\^[0-9]`,         // Quake-style color codes
+	`\^(X[0-9a-fA-F]{6}|.)`, // Quake-style color codes (^N and ^Xrrggbb)
 	`[\x00-\x1f]`,     // Control characters
 	`\s{2,}`,          // Collapse runs of whitespace
 }, "|"))

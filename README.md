@@ -66,7 +66,7 @@ servers, err := gjq.Discover(ctx, "192.168.1.100", gjq.DiscoverOptions{})
 
 | Field | Type | JSON | Notes |
 |-------|------|------|-------|
-| Protocol | string | `protocol` | Protocol used: `source`, `minecraft`, `raknet`, `eos`, `tshock`, `fivem` |
+| Protocol | string | `protocol` | Protocol used: `source`, `minecraft`, `raknet`, `eos`, `tshock`, `fivem`, `quake3` |
 | Name | string | `name` | Server name or MOTD |
 | Map | string | `map` | Current map |
 | Game | string | `game` | Game name, matched from the game registry — not server-reported |

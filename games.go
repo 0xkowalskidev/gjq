@@ -44,6 +44,12 @@ var gameRegistry = []GameConfig{
 	{Slug: "counter-strike", Name: "Counter-Strike 1.6", Aliases: []string{"cs16", "cs"}, AppID: 10, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
 	{Slug: "rust", Name: "Rust", Aliases: []string{}, AppID: 252490, DefaultGamePort: 28015, DefaultQueryPort: 28017, Protocol: "source", Supports: sourceSupports},
 	{Slug: "fivem", Name: "FiveM (GTA V)", Aliases: []string{"gta5"}, DefaultGamePort: 30120, DefaultQueryPort: 30120, Protocol: "fivem", Supports: []string{"players"}, Notes: "Player list may be disabled by server config"},
+	{Slug: "cod4", Name: "Call of Duty 4: Modern Warfare", Aliases: []string{"cod4x"}, DefaultGamePort: 28960, DefaultQueryPort: 28960, Protocol: "quake3", Supports: []string{"players"}},
+	{Slug: "cod2", Name: "Call of Duty 2", Aliases: []string{}, DefaultGamePort: 28960, DefaultQueryPort: 28960, Protocol: "quake3", Supports: []string{"players"}},
+	{Slug: "cod-mw2", Name: "Call of Duty: MW2 (IW4x)", Aliases: []string{"iw4x", "mw2"}, DefaultGamePort: 28960, DefaultQueryPort: 28960, Protocol: "quake3", Supports: []string{"players"}},
+	{Slug: "cod-waw", Name: "Call of Duty: WaW", Aliases: []string{"t4", "waw"}, DefaultGamePort: 28960, DefaultQueryPort: 28960, Protocol: "quake3", Supports: []string{"players"}},
+	{Slug: "quake-live", Name: "Quake Live", Aliases: []string{"ql"}, AppID: 282440, DefaultGamePort: 27960, DefaultQueryPort: 27960, Protocol: "source", Supports: sourceSupports},
+	{Slug: "wolfenstein-et", Name: "Wolfenstein: Enemy Territory", Aliases: []string{"et", "wet"}, DefaultGamePort: 27960, DefaultQueryPort: 27960, Protocol: "quake3", Supports: []string{"players"}},
 	{
 		Slug: "palworld", Name: "Palworld", Aliases: []string{"pw"},
 		DefaultGamePort: 8211, DefaultQueryPort: 8211, Protocol: "eos",
