@@ -185,6 +185,9 @@ func readMCStatusResponse(conn net.Conn) (*mcStatusResponse, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read string length: %w", err)
 	}
+	if strLen < 0 || strLen > 1<<20 {
+		return nil, fmt.Errorf("invalid json string length: %d", strLen)
+	}
 
 	jsonData := make([]byte, strLen)
 	if _, err := r.Read(jsonData); err != nil {
