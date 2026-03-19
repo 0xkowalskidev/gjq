@@ -39,7 +39,7 @@ var gameRegistry = []GameConfig{
 		Supports: []string{"players", "mods"}, Notes: "Player list limited to server's sample (usually 12 max)"},
 	{Slug: "minecraft-bedrock", Name: "Minecraft: Bedrock Edition", Aliases: []string{"mcbe", "bedrock"}, DefaultGamePort: 19132, DefaultQueryPort: 19132, Protocol: "raknet"},
 	{Slug: "counter-strike-2", Name: "Counter-Strike 2", Aliases: []string{"cs2"}, AppID: 730, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceNoRules},
-	{Slug: "counter-strike-go", Name: "Counter-Strike: GO", Aliases: []string{"csgo"}, AppID: 730, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
+	{Slug: "counter-strike-go", Name: "Counter-Strike: GO", Aliases: []string{"csgo"}, AppID: 4465480, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports, Notes: "Standalone re-release (March 2026) with new AppID — CS2 servers on AppID 730 may still report 'Global Offensive' in A2S"},
 	{Slug: "counter-strike-source", Name: "Counter-Strike: Source", Aliases: []string{"css"}, AppID: 240, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
 	{Slug: "counter-strike", Name: "Counter-Strike 1.6", Aliases: []string{"cs16", "cs"}, AppID: 10, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
 	{Slug: "rust", Name: "Rust", Aliases: []string{}, AppID: 252490, DefaultGamePort: 28015, DefaultQueryPort: 28017, Protocol: "source", Supports: sourceSupports},
