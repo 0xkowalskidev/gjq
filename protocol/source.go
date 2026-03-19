@@ -391,32 +391,32 @@ func parsePlayerResponse(data []byte) ([]PlayerInfo, error) {
 
 	for i := 0; i < int(playerCount); i++ {
 		if _, err := r.ReadByte(); err != nil { // index byte (unused but part of wire format)
-			slog.Warn("a2s_player: truncated response", "expected", playerCount, "parsed", i)
+			slog.Debug("a2s_player: truncated response", "expected", playerCount, "parsed", i)
 			break
 		}
 
 		name, err := readNullTermString(r)
 		if err != nil {
-			slog.Warn("a2s_player: truncated response", "expected", playerCount, "parsed", i)
+			slog.Debug("a2s_player: truncated response", "expected", playerCount, "parsed", i)
 			break
 		}
 
 		var score int32
 		if err := binary.Read(r, binary.LittleEndian, &score); err != nil {
-			slog.Warn("a2s_player: truncated response", "expected", playerCount, "parsed", i)
+			slog.Debug("a2s_player: truncated response", "expected", playerCount, "parsed", i)
 			break
 		}
 
 		var duration float32
 		if err := binary.Read(r, binary.LittleEndian, &duration); err != nil {
-			slog.Warn("a2s_player: truncated response", "expected", playerCount, "parsed", i)
+			slog.Debug("a2s_player: truncated response", "expected", playerCount, "parsed", i)
 			break
 		}
 
 		// Garbage float32 values (NaN, Inf, negative) at truncation boundaries
 		// produce impossible durations like math.MinInt64 nanoseconds.
 		if math.IsNaN(float64(duration)) || math.IsInf(float64(duration), 0) || duration < 0 {
-			slog.Warn("a2s_player: invalid duration, likely truncated data", "expected", playerCount, "parsed", i)
+			slog.Debug("a2s_player: invalid duration, likely truncated data", "expected", playerCount, "parsed", i)
 			break
 		}
 
@@ -451,7 +451,7 @@ func parseRulesResponse(data []byte) (map[string]string, error) {
 	for i := 0; i < int(ruleCount); i++ {
 		name, err := readNullTermString(r)
 		if err != nil {
-			slog.Warn("a2s_rules: truncated response", "expected", ruleCount, "parsed", i)
+			slog.Debug("a2s_rules: truncated response", "expected", ruleCount, "parsed", i)
 			break
 		}
 
@@ -459,13 +459,13 @@ func parseRulesResponse(data []byte) (map[string]string, error) {
 		// at a truncation boundary where coincidental 0x00 bytes act as fake
 		// null terminators.
 		if name == "" || containsControlChar(name) {
-			slog.Warn("a2s_rules: invalid key, likely truncated data", "expected", ruleCount, "parsed", i)
+			slog.Debug("a2s_rules: invalid key, likely truncated data", "expected", ruleCount, "parsed", i)
 			break
 		}
 
 		value, err := readNullTermString(r)
 		if err != nil {
-			slog.Warn("a2s_rules: truncated response", "expected", ruleCount, "parsed", i)
+			slog.Debug("a2s_rules: truncated response", "expected", ruleCount, "parsed", i)
 			break
 		}
 		rules[name] = value

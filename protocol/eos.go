@@ -199,7 +199,7 @@ func findSession(ctx context.Context, cfg *EOSConfig, token, address string, por
 	// the target server may not appear in the results.
 	slog.Debug("eos: got sessions", "returned", len(sessions), "total", envelope.Count)
 	if envelope.Count > len(sessions) {
-		slog.Warn("eos: API returned partial results — server may not be found", "returned", len(sessions), "total", envelope.Count, "address", address)
+		slog.Debug("eos: API returned partial results — server may not be found", "returned", len(sessions), "total", envelope.Count, "address", address)
 	}
 
 	portStr := fmt.Sprintf("%d", port)
