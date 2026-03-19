@@ -64,3 +64,18 @@ fi
 
 mv "$BINARY" "${INSTALL_DIR}/${BINARY}"
 echo "Installed ${BINARY} to ${INSTALL_DIR}/${BINARY}"
+
+case ":$PATH:" in
+    *":${INSTALL_DIR}:"*)
+        ;;
+    *)
+        SHELL_NAME="$(basename "$SHELL")"
+        case "$SHELL_NAME" in
+            zsh)  RC="${HOME}/.zshrc" ;;
+            bash) RC="${HOME}/.bashrc" ;;
+            *)    RC="${HOME}/.profile" ;;
+        esac
+        echo "export PATH=\"${INSTALL_DIR}:\$PATH\"" >> "$RC"
+        echo "Added ${INSTALL_DIR} to PATH in ${RC} (restart your shell or run: source ${RC})"
+        ;;
+esac
