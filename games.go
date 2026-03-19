@@ -64,7 +64,7 @@ var gameRegistry = []GameConfig{
 			Attributes: map[string]string{"name": "CUSTOMSERVERNAME_s", "map": "MAPNAME_s", "password": "SERVERPASSWORD_b", "version": "BUILDID_s"},
 		},
 	},
-	{Slug: "ark-survival-evolved", Name: "ARK: Survival Evolved", Aliases: []string{"ark", "ase"}, AppID: 346110, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
+	{Slug: "ark-survival-evolved", Name: "ARK: Survival Evolved", Aliases: []string{"ark", "ase"}, AppID: 346110, DefaultGamePort: 7777, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports, Notes: "Player list and max players may be inaccurate"},
 	{Slug: "team-fortress-2", Name: "Team Fortress 2", Aliases: []string{"tf2"}, AppID: 440, DefaultGamePort: 27015, DefaultQueryPort: 27015, Protocol: "source", Supports: sourceSupports},
 	{Slug: "dayz", Name: "DayZ", Aliases: []string{}, AppID: 221100, DefaultGamePort: 2302, DefaultQueryPort: 2303, Protocol: "source", Supports: sourceSupports},
 	{Slug: "valheim", Name: "Valheim", Aliases: []string{}, AppID: 892970, DefaultGamePort: 2456, DefaultQueryPort: 2457, Protocol: "source", Supports: sourceSupports},
