@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/0xkowalskidev/gjq"
+	"github.com/warsmite/gjq"
 )
 
 var sanitizeRe = regexp.MustCompile(strings.Join([]string{

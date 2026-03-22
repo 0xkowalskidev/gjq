@@ -1,6 +1,6 @@
 package gjq
 
-import "github.com/0xkowalskidev/gjq/protocol"
+import "github.com/warsmite/gjq/protocol"
 
 type GameConfig struct {
 	Slug             string   `json:"slug"`

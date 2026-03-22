@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/0xkowalskidev/gjq"
+	"github.com/warsmite/gjq"
 	"github.com/spf13/cobra"
 )
 

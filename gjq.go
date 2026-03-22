@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/0xkowalskidev/gjq/protocol"
+	"github.com/warsmite/gjq/protocol"
 )
 
 type Duration = protocol.Duration

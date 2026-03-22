@@ -6,18 +6,18 @@ Query game servers from the command line or Go code. Supports 75+ games across S
 
 **Prebuilt binary:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/0xkowalskidev/gjq/master/install.sh | sh
+curl -sSL https://raw.githubusercontent.com/warsmite/gjq/master/install.sh | sh
 ```
 
 **Go:**
 ```bash
-go install github.com/0xkowalskidev/gjq/cmd/gjq@latest
+go install github.com/warsmite/gjq/cmd/gjq@latest
 ```
 
 **Nix:**
 ```bash
-nix run github:0xkowalskidev/gjq         # run without installing
-nix profile install github:0xkowalskidev/gjq  # install to profile
+nix run github:warsmite/gjq         # run without installing
+nix profile install github:warsmite/gjq  # install to profile
 ```
 
 ## Usage
@@ -47,7 +47,7 @@ The **query port** is always accurate — it's the port that actually responded.
 ## Library
 
 ```go
-import "github.com/0xkowalskidev/gjq"
+import "github.com/warsmite/gjq"
 
 server, err := gjq.Query(ctx, "play.hypixel.net", 25565, gjq.QueryOptions{Game: "minecraft"})
 server, err := gjq.Query(ctx, "192.168.1.100", 27015, gjq.QueryOptions{Game: "tf2", Players: true, Rules: true})

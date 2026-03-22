@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-REPO="0xkowalskidev/gjq"
+REPO="warsmite/gjq"
 BINARY="gjq"
 
 # Detect OS

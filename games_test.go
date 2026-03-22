@@ -3,7 +3,7 @@ package gjq
 import (
 	"testing"
 
-	"github.com/0xkowalskidev/gjq/protocol"
+	"github.com/warsmite/gjq/protocol"
 )
 
 func TestLookupGame(t *testing.T) {

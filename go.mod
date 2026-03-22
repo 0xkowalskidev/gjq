@@ -1,4 +1,4 @@
-module github.com/0xkowalskidev/gjq
+module github.com/warsmite/gjq
 
 go 1.25.5
 
