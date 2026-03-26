@@ -5,11 +5,11 @@ import (
 )
 
 func TestBuildCandidates(t *testing.T) {
-	rust := LookupGame("rust")
+	rust := Registry.Get("rust")
 	if rust == nil {
 		t.Fatal("rust game not found in registry")
 	}
-	mc := LookupGame("minecraft-java")
+	mc := Registry.Get("minecraft-java")
 	if mc == nil {
 		t.Fatal("minecraft-java game not found in registry")
 	}
@@ -53,28 +53,28 @@ func TestBuildCandidates(t *testing.T) {
 	})
 
 	t.Run("game with default query port", func(t *testing.T) {
-		cs := buildCandidates(rust.DefaultQueryPort, rust, false, "")
+		cs := buildCandidates(rust.QueryPort(), rust, false, "")
 		if len(cs) != 1 {
 			t.Fatalf("got %d candidates, want 1", len(cs))
 		}
-		if cs[0].port != rust.DefaultQueryPort {
-			t.Errorf("port = %d, want %d", cs[0].port, rust.DefaultQueryPort)
+		if cs[0].port != rust.QueryPort() {
+			t.Errorf("port = %d, want %d", cs[0].port, rust.QueryPort())
 		}
 	})
 
 	t.Run("game with game port differs from query port", func(t *testing.T) {
-		cs := buildCandidates(rust.DefaultGamePort, rust, false, "")
+		cs := buildCandidates(rust.GamePort(), rust, false, "")
 		if len(cs) < 2 {
 			t.Fatalf("got %d candidates, want at least 2", len(cs))
 		}
 		// First candidate should be the default query port at priority 0
-		if cs[0].port != rust.DefaultQueryPort || cs[0].priority != 0 {
-			t.Errorf("first candidate: port=%d priority=%d, want port=%d priority=0", cs[0].port, cs[0].priority, rust.DefaultQueryPort)
+		if cs[0].port != rust.QueryPort() || cs[0].priority != 0 {
+			t.Errorf("first candidate: port=%d priority=%d, want port=%d priority=0", cs[0].port, cs[0].priority, rust.QueryPort())
 		}
 	})
 
 	t.Run("game with same game and query port", func(t *testing.T) {
-		cs := buildCandidates(mc.DefaultQueryPort, mc, false, "")
+		cs := buildCandidates(mc.QueryPort(), mc, false, "")
 		if len(cs) != 1 {
 			t.Fatalf("got %d candidates, want 1", len(cs))
 		}
@@ -97,7 +97,7 @@ func TestBuildCandidates(t *testing.T) {
 
 func TestBuildCandidatesWithGameOffsets(t *testing.T) {
 	// Rust: game=28015, query=28017, offset=+2
-	rust := LookupGame("rust")
+	rust := Registry.Get("rust")
 	if rust == nil {
 		t.Fatal("rust not found")
 	}
@@ -139,7 +139,7 @@ func TestBuildCandidatesWithGameOffsets(t *testing.T) {
 	})
 
 	t.Run("same game and query port skips offsets", func(t *testing.T) {
-		mc := LookupGame("minecraft-java")
+		mc := Registry.Get("minecraft-java")
 		if mc == nil {
 			t.Fatal("minecraft-java not found")
 		}
@@ -150,4 +150,3 @@ func TestBuildCandidatesWithGameOffsets(t *testing.T) {
 		}
 	})
 }
-

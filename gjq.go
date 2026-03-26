@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/warsmite/gamejanitor/games"
 	"github.com/warsmite/gjq/protocol"
 )
 
@@ -44,6 +45,46 @@ type candidate struct {
 	priority int // lower = better; 0 = best possible match
 }
 
+// Registry is the shared game registry loaded from gamejanitor's embedded game data.
+var Registry *games.Registry
+
+func init() {
+	var err error
+	Registry, err = games.NewRegistry()
+	if err != nil {
+		panic(fmt.Sprintf("gjq: failed to load game registry: %v", err))
+	}
+}
+
+// hasSupport checks if a game's query config supports a feature.
+func hasSupport(g *games.GameDef, feature string) bool {
+	if g.Query == nil {
+		return false
+	}
+	for _, s := range g.Query.Supports {
+		if s == feature {
+			return true
+		}
+	}
+	return false
+}
+
+// eosConfig maps a GameDef's EOS query config to the protocol layer's EOSConfig.
+func eosConfig(g *games.GameDef) *protocol.EOSConfig {
+	if g.Query == nil || g.Query.EOS == nil {
+		return nil
+	}
+	e := g.Query.EOS
+	return &protocol.EOSConfig{
+		ClientID:        e.ClientID,
+		ClientSecret:    e.ClientSecret,
+		DeploymentID:    e.DeploymentID,
+		UseExternalAuth: e.UseExternalAuth,
+		UseWildcard:     e.UseWildcard,
+		Attributes:      e.Attributes,
+	}
+}
+
 // Query queries a game server at the given address and port.
 // All candidate (port, protocol) combinations are probed concurrently.
 // The best result (lowest priority) is returned, with early exit when
@@ -68,31 +109,30 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 
 	queryOpts := protocol.QueryOpts{Players: opts.Players, Rules: opts.Rules, ResolvedIP: resolvedIP}
 
-	var gc *GameConfig
+	var gc *games.GameDef
 	if opts.Game != "" {
-		gc = LookupGame(opts.Game)
-		if gc == nil {
+		gc = Registry.Get(opts.Game)
+		if gc == nil || !gc.HasQuery() {
 			return nil, fmt.Errorf("unknown game %q — run 'gjq games' to see supported games", opts.Game)
 		}
 	}
 
 	if gc != nil {
-		if opts.Players && !gc.HasSupport("players") {
+		if opts.Players && !hasSupport(gc, "players") {
 			return nil, fmt.Errorf("%s does not support --players", gc.Name)
 		}
-		if opts.Rules && !gc.HasSupport("rules") {
+		if opts.Rules && !hasSupport(gc, "rules") {
 			return nil, fmt.Errorf("%s does not support --rules", gc.Name)
 		}
 
-		if eosCfg, ok := gc.ProtocolConfig.(*protocol.EOSConfig); ok {
-			cfg := *eosCfg
+		if eosCfg := eosConfig(gc); eosCfg != nil {
 			if opts.EOSClientID != "" {
-				cfg.ClientID = opts.EOSClientID
+				eosCfg.ClientID = opts.EOSClientID
 			}
 			if opts.EOSClientSecret != "" {
-				cfg.ClientSecret = opts.EOSClientSecret
+				eosCfg.ClientSecret = opts.EOSClientSecret
 			}
-			queryOpts.EOS = &cfg
+			queryOpts.EOS = eosCfg
 		}
 	}
 
@@ -133,7 +173,7 @@ func autoDetectProtocols() []string {
 }
 
 // buildCandidates generates prioritized (port, protocol) pairs to try concurrently.
-func buildCandidates(port uint16, gc *GameConfig, direct bool, proto string) []candidate {
+func buildCandidates(port uint16, gc *games.GameDef, direct bool, proto string) []candidate {
 	// --protocol: user specifies exact protocol and query port
 	if proto != "" {
 		return []candidate{{port: port, protocol: proto, priority: 0}}
@@ -142,7 +182,7 @@ func buildCandidates(port uint16, gc *GameConfig, direct bool, proto string) []c
 	// --direct: user guarantees this is the query port
 	if direct {
 		if gc != nil {
-			return []candidate{{port: port, protocol: gc.Protocol, priority: 0}}
+			return []candidate{{port: port, protocol: gc.Query.Protocol, priority: 0}}
 		}
 		return candidatesForPort(port, 0)
 	}
@@ -166,26 +206,30 @@ func candidatesForPort(port uint16, priority int) []candidate {
 	return candidates
 }
 
-func buildCandidatesWithGame(port uint16, gc *GameConfig) []candidate {
+func buildCandidatesWithGame(port uint16, gc *games.GameDef) []candidate {
 	// No port given is handled by CLI (fills in defaultQueryPort), so port is always set here.
-	if port == gc.DefaultQueryPort {
-		return []candidate{{port: port, protocol: gc.Protocol, priority: 0}}
+	queryPort := gc.QueryPort()
+	gamePort := gc.GamePort()
+	proto := gc.Query.Protocol
+
+	if port == queryPort {
+		return []candidate{{port: port, protocol: proto, priority: 0}}
 	}
 
-	if port == gc.DefaultGamePort && gc.DefaultQueryPort != gc.DefaultGamePort {
+	if port == gamePort && queryPort != gamePort {
 		return []candidate{
-			{port: gc.DefaultQueryPort, protocol: gc.Protocol, priority: 0},
-			{port: port, protocol: gc.Protocol, priority: 1},
+			{port: queryPort, protocol: proto, priority: 0},
+			{port: port, protocol: proto, priority: 1},
 		}
 	}
 
 	// Arbitrary port — try user's port, then offset-derived in both directions
-	candidates := []candidate{{port: port, protocol: gc.Protocol, priority: 0}}
-	if gc.DefaultQueryPort != gc.DefaultGamePort {
-		offset := int(gc.DefaultQueryPort) - int(gc.DefaultGamePort)
+	candidates := []candidate{{port: port, protocol: proto, priority: 0}}
+	if queryPort != gamePort {
+		offset := int(queryPort) - int(gamePort)
 		for _, d := range []int{int(port) + offset, int(port) - offset} {
 			if d > 0 && d <= 65535 && uint16(d) != port {
-				candidates = append(candidates, candidate{port: uint16(d), protocol: gc.Protocol, priority: 1})
+				candidates = append(candidates, candidate{port: uint16(d), protocol: proto, priority: 1})
 			}
 		}
 	}
@@ -197,19 +241,26 @@ func buildCandidatesAutoDetect(port uint16) []candidate {
 	candidates := candidatesForPort(port, 0)
 
 	// Priority 1: for games where user's port is a known game port, add the query port
-	for _, g := range GamesWithGamePort(port) {
-		if g.DefaultQueryPort != g.DefaultGamePort {
-			candidates = append(candidates, candidate{port: g.DefaultQueryPort, protocol: g.Protocol, priority: 1})
+	for _, g := range Registry.ByGamePort(port) {
+		if !g.HasQuery() {
+			continue
+		}
+		queryPort := g.QueryPort()
+		gamePort := g.GamePort()
+		if queryPort != gamePort {
+			candidates = append(candidates, candidate{port: queryPort, protocol: g.Query.Protocol, priority: 1})
 		}
 	}
 
 	// Priority 2: offset-derived ports from all games with differing query/game ports
 	seen := map[uint16]bool{port: true}
-	for _, g := range SupportedGames() {
-		if g.DefaultQueryPort == g.DefaultGamePort {
+	for _, g := range Registry.WithQuery() {
+		queryPort := g.QueryPort()
+		gamePort := g.GamePort()
+		if queryPort == gamePort {
 			continue
 		}
-		offset := int(g.DefaultQueryPort) - int(g.DefaultGamePort)
+		offset := int(queryPort) - int(gamePort)
 		derived := int(port) + offset
 		if derived > 0 && derived <= 65535 && !seen[uint16(derived)] {
 			seen[uint16(derived)] = true
@@ -305,8 +356,8 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 			}
 		}
 	} else {
-		for _, g := range SupportedGames() {
-			ports = append(ports, g.DefaultQueryPort)
+		for _, g := range Registry.WithQuery() {
+			ports = append(ports, g.QueryPort())
 		}
 	}
 	ports = dedupPorts(ports...)
@@ -365,22 +416,22 @@ func Discover(ctx context.Context, address string, opts DiscoverOptions) ([]*Ser
 
 // enrichResult sets game/query ports and game name from the GameConfig.
 // If gc is nil, it attempts to look up by AppID.
-func enrichResult(info *ServerInfo, gc *GameConfig) {
+func enrichResult(info *ServerInfo, gc *games.GameDef) {
 	if gc == nil {
 		if info.AppID != 0 {
-			gc = LookupGameByAppID(info.AppID)
+			gc = Registry.ByAppID(info.AppID)
 		} else if info.Protocol == "minecraft" {
-			gc = LookupGame("minecraft-java")
+			gc = Registry.Get("minecraft-java")
 		}
 	}
 
 	if gc != nil {
 		info.Game = gc.Name
-		if gc.Notes != "" {
+		if gc.Query != nil && gc.Query.Notes != "" {
 			if info.Extra == nil {
 				info.Extra = make(map[string]any)
 			}
-			info.Extra["gameNotes"] = gc.Notes
+			info.Extra["gameNotes"] = gc.Query.Notes
 		}
 	}
 }

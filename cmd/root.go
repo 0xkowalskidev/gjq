@@ -50,12 +50,12 @@ func NewRootCmd() *cobra.Command {
 				if flagGame == "" {
 					return fmt.Errorf("no port specified and no --game flag set — use host:port or --game to infer default port")
 				}
-				gc := gjq.LookupGame(flagGame)
-				if gc == nil {
+				gc := gjq.Registry.Get(flagGame)
+				if gc == nil || !gc.HasQuery() {
 					return fmt.Errorf("unknown game %q — run 'gjq games' to see supported games", flagGame)
 				}
 				host = args[0]
-				portStr = strconv.FormatUint(uint64(gc.DefaultQueryPort), 10)
+				portStr = strconv.FormatUint(uint64(gc.QueryPort()), 10)
 			}
 
 			port, err := strconv.ParseUint(portStr, 10, 16)
