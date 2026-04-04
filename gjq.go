@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -96,7 +97,19 @@ func Query(ctx context.Context, address string, port uint16, opts QueryOptions) 
 		defer cancel()
 	}
 
-	resolvedIP, err := resolveHost(ctx, address)
+	// Minecraft SRV record lookup: _minecraft._tcp.<host> may redirect to a
+	// different host:port. The SRV target is used for DNS resolution and dialing,
+	// but the original address is preserved for display and protocol handshakes.
+	dialHost := address
+	if isMinecraft(opts.Game, opts.Protocol) {
+		if srvHost, srvPort, ok := resolveSRV(ctx, address); ok {
+			slog.Debug("minecraft SRV resolved", "original", address, "target", srvHost, "port", srvPort)
+			dialHost = srvHost
+			port = srvPort
+		}
+	}
+
+	resolvedIP, err := resolveHost(ctx, dialHost)
 	if err != nil {
 		return nil, fmt.Errorf("resolve %s: %w", address, err)
 	}
@@ -446,6 +459,33 @@ func resolveHost(ctx context.Context, address string) (string, error) {
 	}
 	slog.Debug("resolved host", "host", address, "ip", ips[0])
 	return ips[0], nil
+}
+
+// isMinecraft returns true if the game or protocol indicates a Minecraft Java server.
+func isMinecraft(game, proto string) bool {
+	if proto == "minecraft" {
+		return true
+	}
+	gc := Registry.Get(game)
+	return gc != nil && gc.HasQuery() && gc.Query.Protocol == "minecraft"
+}
+
+// resolveSRV attempts a _minecraft._tcp SRV lookup for the given host.
+// Returns the target host, port, and true if successful.
+func resolveSRV(ctx context.Context, host string) (string, uint16, bool) {
+	// SRV records only make sense for hostnames, not IPs
+	if net.ParseIP(host) != nil {
+		return "", 0, false
+	}
+	_, addrs, err := net.DefaultResolver.LookupSRV(ctx, "minecraft", "tcp", host)
+	if err != nil || len(addrs) == 0 {
+		return "", 0, false
+	}
+	target := strings.TrimSuffix(addrs[0].Target, ".")
+	if target == "" || addrs[0].Port == 0 {
+		return "", 0, false
+	}
+	return target, addrs[0].Port, true
 }
 
 func dedupPorts(ports ...uint16) []uint16 {
